@@ -1,4 +1,6 @@
 
+
+// ProjectSetup page guides the user through creating a workspace, project, and tasks with a multi-step form and live preview.
 import React, { useState } from "react";
 import "./ProjectSetup.css";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -11,6 +13,7 @@ import {
 } from "@/lib/api";
 import useAuth from "@/hooks/api/use-auth";
 
+// AnimatedLetters animates each letter of a string for a smooth text reveal effect
 function AnimatedLetters({ text }: { text: string }) {
   return (
     <>
@@ -27,18 +30,22 @@ function AnimatedLetters({ text }: { text: string }) {
   );
 }
 
+
 const ProjectSetup: React.FC = () => {
+  // State for each step of the setup process
   const [workspaceName, setWorkspaceName] = useState("");
   const [workspaceDescription, setWorkspaceDescription] = useState("");
   const [projectName, setProjectName] = useState("");
-  const [step, setStep] = useState(1);
-  const [tasks, setTasks] = useState<string[]>(["", ""]);
+  const [step, setStep] = useState(1); // Tracks which step the user is on
+  const [tasks, setTasks] = useState<string[]>(["", ""]); // At least 2 tasks by default
   const [projectDescription, setProjectDescription] = useState("");
 
+  // React Query and navigation hooks
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { data: authData } = useAuth();
 
+  // Mutations for creating workspace, project, and tasks
   const { mutateAsync: createWorkspace, isPending: isCreatingWorkspace } = useMutation({
     mutationFn: createWorkspaceMutationFn,
   });
@@ -50,9 +57,12 @@ const ProjectSetup: React.FC = () => {
   });
 
   return (
+    // Main container for the project setup page
     <div className="page-container">
       <div className="setup-wrapper">
+        {/* Left side: Multi-step form */}
         <div className="setup-left">
+          {/* Progress bar for steps */}
           <div className="progress-bar-container">
             <div className="progress-bar-track">
               <div
@@ -63,6 +73,7 @@ const ProjectSetup: React.FC = () => {
           </div>
 
           <div className="fade-in">
+            {/* Step 1: Workspace name and description */}
             {step === 1 ? (
               <>
                 <h2 className="fade-in-text" style={{ fontWeight: 600, fontSize: 24, marginBottom: 8 }}>
@@ -95,6 +106,7 @@ const ProjectSetup: React.FC = () => {
               </>
             ) : step === 2 ? (
               <>
+                {/* Step 2: Project name */}
                 <h2 className="fade-in-text" style={{ fontWeight: 600, fontSize: 24, marginBottom: 8 }}>
                   Let's set up your first project
                 </h2>
@@ -127,6 +139,7 @@ const ProjectSetup: React.FC = () => {
               </>
             ) : step === 3 ? (
               <>
+                {/* Step 3: Project description */}
                 <h2 className="fade-in-text" style={{ fontWeight: 600, fontSize: 24, marginBottom: 8 }}>
                   Tell us more about your project
                 </h2>
@@ -161,6 +174,7 @@ const ProjectSetup: React.FC = () => {
               </>
             ) : (
               <>
+                {/* Step 4: Add tasks and create everything */}
                 <h2 className="fade-in-text" style={{ fontWeight: 600, fontSize: 24, marginBottom: 8 }}>
                   What are a few tasks that you have to do for {projectName || "project name"}?
                 </h2>
@@ -225,14 +239,17 @@ const ProjectSetup: React.FC = () => {
                           },
                         });
                       }
+                      // Invalidate queries to refresh data
                       queryClient.invalidateQueries();
                       toast({
                         title: "Success",
                         description: "Workspace, project, and tasks created!",
                         variant: "success",
                       });
+                      // Navigate to the new project page
                       navigate(`/workspace/${workspaceId}/project/${projectId}`);
                     } catch (error: any) {
+                      // Show error toast on failure
                       toast({
                         title: "Error",
                         description: error?.message || "Something went wrong",
@@ -256,16 +273,17 @@ const ProjectSetup: React.FC = () => {
               </>
             )}
           </div>
-         
         </div>
-        {/* Right Side */}
+        {/* Right Side: Live project preview */}
         <div className="project-preview-outer">
           <div className="browser-preview">
+            {/* Browser-like header with colored buttons */}
             <div className="browser-preview-header">
               <div className="browser-preview-header-button1"></div>
               <div className="browser-preview-header-button2"></div>
               <div className="browser-preview-header-button3"></div>
             </div>
+            {/* Project preview header with workspace and user info */}
             <div className="project-preview-header">
               <div className="project-preview-chip">
                 <svg className="project-preview-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -305,8 +323,8 @@ const ProjectSetup: React.FC = () => {
                 </div>
               </div>
             </div>
+            {/* Project preview content: workspace/project descriptions and tasks */}
             <div style={{ padding: "32px 24px", maxHeight: "600px", overflowY: "auto" }}>
-     
               {/* Workspace Description Section */}
               {workspaceDescription && (
                 <div style={{
@@ -316,7 +334,6 @@ const ProjectSetup: React.FC = () => {
                   borderRadius: "8px",
                   border: "1px solid #e9ecef"
                 }}>
-                           
                   <h3 style={{
                     fontSize: "15px",
                     fontWeight: 600,
@@ -338,7 +355,7 @@ const ProjectSetup: React.FC = () => {
                   </p>
                 </div>
               )}
-              {/* Project Description Section */}
+              {/* Project Name Section */}
               {projectName && (
                 <div style={{
                   marginBottom: "12px",
@@ -349,6 +366,7 @@ const ProjectSetup: React.FC = () => {
                   <AnimatedLetters text={projectName} />
                 </div>
               )}
+              {/* Project Description Section */}
               {projectDescription && (
                 <div style={{
                   marginBottom: "16px",
@@ -392,7 +410,7 @@ const ProjectSetup: React.FC = () => {
                   No description provided
                 </div>
               )}
-             
+              {/* Task list preview */}
               <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
                 {tasks.map((task, idx) =>
                   task ? (

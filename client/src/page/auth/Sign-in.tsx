@@ -9,13 +9,19 @@ import { toast } from "@/hooks/use-toast";
 import GoogleOauthButton from "@/components/auth/google-oauth-button";
 import "./login-signup.css";
 
+// SignIn component handles user login functionality, form validation, and UI rendering
 const SignIn = () => {
+  // React Router hook for navigation
   const navigate = useNavigate();
+  // Get search params from URL (e.g., ?returnUrl=...)
   const [searchParams] = useSearchParams();
+  // Extract returnUrl if present
   const returnUrl = searchParams.get("returnUrl");
+  // Setup mutation for login API call
   const { mutate, isPending } = useMutation({
     mutationFn: loginMutationFn,
   });
+  // Define form validation schema using zod
   const formSchema = z.object({
     email: z.string().trim().email("Invalid email address").min(1, {
       message: "Email is required",
@@ -24,6 +30,7 @@ const SignIn = () => {
       message: "Password is required",
     }),
   });
+  // Initialize react-hook-form with schema and default values
   const form = useForm({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -31,15 +38,18 @@ const SignIn = () => {
       password: "",
     },
   });
+  // Handle form submission
   const onSubmit = (values: { email: string; password: string }) => {
-    if (isPending) return;
+    if (isPending) return; // Prevent multiple submissions
     mutate(values, {
       onSuccess: (data) => {
+        // On successful login, redirect to returnUrl or user's workspace
         const user = data.user;
         const decodedUrl = returnUrl ? decodeURIComponent(returnUrl) : null;
         navigate(decodedUrl || `/workspace/${user.currentWorkspace}`);
       },
       onError: (error) => {
+        // Show error toast on login failure
         toast({
           title: "Error",
           description: error.message,
@@ -49,10 +59,13 @@ const SignIn = () => {
     });
   };
   return (
+    // Main container for the login page
     <div className="login-root">
       <div className="box-root flex-flex flex-direction--column" style={{ minHeight: "100vh", flexGrow: 1 }}>
+        {/* Decorative background elements for styling */}
         <div className="loginbackground box-background--white padding-top--64">
           <div className="loginbackground-gridContainer" style={{ paddingTop: "200px" }}>
+            {/* Various background boxes for visual design */}
             <div className="box-root flex-flex" style={{ gridArea: "top / start / 8 / end" }}>
               <div className="box-root" style={{ backgroundImage: "linear-gradient(white 0%, rgb(247, 250, 252) 33%)", flexGrow: 1 }}></div>
             </div>
@@ -82,7 +95,9 @@ const SignIn = () => {
             </div>
           </div>
         </div>
+        {/* Main content area for the login form */}
         <div className="box-root padding-top--24 flex-flex flex-direction--column" style={{ flexGrow: 1, zIndex: 9 }}>
+          {/* Logo/Header */}
           <div className="box-root padding-top--48 padding-bottom--24 flex-flex flex-justifyContent--center">
             <h1><a href="/">AdminiX</a></h1>
           </div>
@@ -90,7 +105,9 @@ const SignIn = () => {
             <div className="formbg">
               <div className="formbg-inner padding-horizontal--48">
                 <span className="padding-bottom--15">Sign in to your account</span>
+                {/* Login form */}
                 <form onSubmit={form.handleSubmit(onSubmit)}>
+                  {/* Email field */}
                   <div className="field padding-bottom--24">
                     <label htmlFor="email">Email</label>
                     <input
@@ -99,10 +116,12 @@ const SignIn = () => {
                       {...form.register("email")}
                       disabled={isPending}
                     />
+                    {/* Show validation error for email */}
                     {form.formState.errors.email && (
                       <div className="form-error">{form.formState.errors.email.message}</div>
                     )}
                   </div>
+                  {/* Password field with 'Forgot password' link */}
                   <div className="field padding-bottom--24">
                     <div className="grid--50-50">
                       <label htmlFor="password">Password</label>
@@ -116,15 +135,18 @@ const SignIn = () => {
                       {...form.register("password")}
                       disabled={isPending}
                     />
+                    {/* Show validation error for password */}
                     {form.formState.errors.password && (
                       <div className="form-error">{form.formState.errors.password.message}</div>
                     )}
                   </div>
+                  {/* Stay signed in checkbox */}
                   <div className="field field-checkbox padding-bottom--24 flex-flex align-center">
                     <label htmlFor="staySignedIn">
                       <input type="checkbox" id="staySignedIn" name="staySignedIn" /> Stay signed in for a week
                     </label>
                   </div>
+                  {/* Submit button */}
                   <div className="field padding-bottom--24">
                     <input
                       type="submit"
@@ -133,12 +155,14 @@ const SignIn = () => {
                       disabled={isPending}
                     />
                   </div>
+                  {/* Google OAuth login button */}
                   <div className="field">
                     <GoogleOauthButton label="Login with Google" />
                   </div>
                 </form>
               </div>
             </div>
+            {/* Footer links for sign up, contact, privacy, etc. */}
             <div className="footer-link padding-top--24">
               <span>Don't have an account? <Link to="/sign-up">Sign up</Link></span>
               <div className="listing padding-top--24 padding-bottom--24 flex-flex center-center">
