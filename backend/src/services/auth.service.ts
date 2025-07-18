@@ -19,7 +19,7 @@ export const loginOrCreateAccountService = async(data: {
 }) => {
     const {providerId, provider, displayName, email, picture} = data ;
 
-    const session = await mongoose.startSession(); 
+    const session = await mongoose.startSession();
 
     try {
         session.startTransaction();
@@ -42,32 +42,7 @@ export const loginOrCreateAccountService = async(data: {
             });
             await account.save({session});
 
-            // create new workspace for the new user
-            const workspace = new WorkspaceModel({
-                name: `My workspace`, 
-                description:`Workspace created for ${user.name}`,
-                owner: user._id,
-            });
-            await workspace.save({session});
-
-            const ownerRole = await RoleModel.findOne({
-                name: Roles.OWNER,
-            }).session(session);
-
-            if(!ownerRole) {
-                throw new NotFoundException("Owner role not found");
-            }
-
-            const member = new MemberModel({
-                userId: user._id, 
-                workspaceId:workspace._id, 
-                role: ownerRole._id,
-                joinedAt: new Date(),
-            }); 
-            await member.save({session});
-
-            user.currentWorkspace = workspace._id as mongoose.Types.ObjectId;
-            await user.save({session});
+            // Do NOT create workspace, member, or set currentWorkspace here
         }
         await session.commitTransaction(); 
         session.endSession(); 
@@ -113,39 +88,14 @@ try {
     });
     await account.save({session});
 
-       // create new workspace for the new user
-       const workspace = new WorkspaceModel({
-        name: `My workspace`, 
-        description:`Workspace created for ${user.name}`,
-        owner: user._id,
-    });
-    await workspace.save({session});
-
-    const ownerRole = await RoleModel.findOne({
-        name: Roles.OWNER,
-    }).session(session);
-
-    if(!ownerRole) {
-        throw new NotFoundException("Owner role not found");
-    }
-    const member = new MemberModel({
-        userId: user._id, 
-        workspaceId:workspace._id, 
-        role: ownerRole._id,
-        joinedAt: new Date(),
-    }); 
-    await member.save({session});
-
-    user.currentWorkspace = workspace._id as mongoose.Types.ObjectId;
-    await user.save({session});
+    // Do NOT create workspace, member, or set currentWorkspace here
 
     await session.commitTransaction(); 
     session.endSession(); 
     console.log("End Session ...");
     
     return {
-        userId:user._id,
-        workspaceId:workspace._id,
+        userId:user._id
     };
 
 } catch (error) {

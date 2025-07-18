@@ -1,6 +1,15 @@
 
 import React, { useState } from "react";
 import "./ProjectSetup.css";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
+import { toast } from "@/hooks/use-toast";
+import {
+  createWorkspaceMutationFn,
+  createProjectMutationFn,
+  createTaskMutationFn,
+} from "@/lib/api";
+import useAuth from "@/hooks/api/use-auth";
 
 function AnimatedLetters({ text }: { text: string }) {
   return (
@@ -19,9 +28,26 @@ function AnimatedLetters({ text }: { text: string }) {
 }
 
 const ProjectSetup: React.FC = () => {
+  const [workspaceName, setWorkspaceName] = useState("");
+  const [workspaceDescription, setWorkspaceDescription] = useState("");
   const [projectName, setProjectName] = useState("");
   const [step, setStep] = useState(1);
   const [tasks, setTasks] = useState<string[]>(["", ""]);
+  const [projectDescription, setProjectDescription] = useState("");
+
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  const { data: authData } = useAuth();
+
+  const { mutateAsync: createWorkspace, isPending: isCreatingWorkspace } = useMutation({
+    mutationFn: createWorkspaceMutationFn,
+  });
+  const { mutateAsync: createProject, isPending: isCreatingProject } = useMutation({
+    mutationFn: createProjectMutationFn,
+  });
+  const { mutateAsync: createTask, isPending: isCreatingTask } = useMutation({
+    mutationFn: createTaskMutationFn,
+  });
 
   return (
     <div className="page-container">
@@ -31,7 +57,7 @@ const ProjectSetup: React.FC = () => {
             <div className="progress-bar-track">
               <div
                 className="progress-bar-fill"
-                style={{ width: `${(step / 3) * 100}%` }}
+                style={{ width: `${(step / 4) * 100}%` }}
               />
             </div>
           </div>
@@ -40,10 +66,40 @@ const ProjectSetup: React.FC = () => {
             {step === 1 ? (
               <>
                 <h2 className="fade-in-text" style={{ fontWeight: 600, fontSize: 24, marginBottom: 8 }}>
+                  Let's set up your workspace
+                </h2>
+                <p style={{ color: "#6b7280", marginBottom: 24 }}>
+                  What would you like to call your workspace?
+                </p>
+                <input
+                  type="text"
+                  placeholder="Enter workspace name"
+                  value={workspaceName}
+                  onChange={e => setWorkspaceName(e.target.value)}
+                  className="input-style"
+                />
+                <textarea
+                  placeholder="Optional: Describe your workspace (e.g. team, department, or purpose)"
+                  value={workspaceDescription}
+                  onChange={e => setWorkspaceDescription(e.target.value)}
+                  className="input-style"
+                  style={{ minHeight: "60px", resize: "vertical", fontFamily: "inherit", lineHeight: "1.5", marginTop: 12, marginBottom: 12 }}
+                />
+                <button
+                  className="button-primary"
+                  onClick={() => setStep(step + 1)}
+                  disabled={!workspaceName.trim()}
+                >
+                  Continue
+                </button>
+              </>
+            ) : step === 2 ? (
+              <>
+                <h2 className="fade-in-text" style={{ fontWeight: 600, fontSize: 24, marginBottom: 8 }}>
                   Let's set up your first project
                 </h2>
                 <p style={{ color: "#6b7280", marginBottom: 24 }}>
-                  What’s something your team is working on?
+                  What's something your team is working on?
                 </p>
                 <input
                   type="text"
@@ -55,9 +111,53 @@ const ProjectSetup: React.FC = () => {
                 <button
                   className="button-primary"
                   onClick={() => setStep(step + 1)}
+                  disabled={!projectName.trim()}
                 >
                   Continue
                 </button>
+                <div style={{ marginTop: "16px" }}>
+                  <button
+                    className="button-secondary"
+                    onClick={() => setStep(step - 1)}
+                    style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "14px" }}
+                  >
+                    ← Back
+                  </button>
+                </div>
+              </>
+            ) : step === 3 ? (
+              <>
+                <h2 className="fade-in-text" style={{ fontWeight: 600, fontSize: 24, marginBottom: 8 }}>
+                  Tell us more about your project
+                </h2>
+                <p style={{ color: "#6b7280", marginBottom: 24 }}>
+                  Add a description to help your team understand the project better
+                </p>
+                <textarea
+                  placeholder="Describe your project goals, timeline, and any important details..."
+                  value={projectDescription}
+                  onChange={e => setProjectDescription(e.target.value)}
+                  className="input-style"
+                  style={{ minHeight: "120px", resize: "vertical", fontFamily: "inherit", lineHeight: "1.5" }}
+                />
+                <div style={{ marginTop: "16px" }}>
+                  <button
+                    className="button-primary"
+                    onClick={() => setStep(step + 1)}
+                    disabled={!projectDescription.trim()}
+                  >
+                    Continue
+                  </button>
+                </div>
+                <div style={{ marginTop: "16px" }}>
+                  <button
+                    className="button-secondary"
+                    onClick={() => setStep(step - 1)}
+                    style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "14px" }}
+                  >
+                    ← Back
+                  </button>
+                </div>
               </>
             ) : (
               <>
@@ -81,20 +181,82 @@ const ProjectSetup: React.FC = () => {
                 ))}
                 <button
                   className="button-secondary"
-                  onClick={() => setTasks([...tasks, ""])}
+                  onClick={() => {
+                    if (tasks.length < 5) setTasks([...tasks, ""]);
+                  }}
+                  disabled={tasks.length >= 5}
                 >
                   + Add another task
                 </button>
                 <br />
                 <button
                   className="button-primary"
-                  onClick={() => setStep(step + 1)}
+                  onClick={async () => {
+                    try {
+                      // 1. Create Workspace
+                      const workspaceRes = await createWorkspace({
+                        name: workspaceName,
+                        description: workspaceDescription,
+                      });
+                      const workspaceId = workspaceRes.workspace._id;
+                      // 2. Create Project
+                      const projectRes = await createProject({
+                        workspaceId,
+                        data: {
+                          emoji: "📁", // or let user pick later
+                          name: projectName,
+                          description: projectDescription,
+                        },
+                      });
+                      const projectId = projectRes.project._id;
+                      // 3. Create Tasks (only non-empty)
+                      const filteredTasks = tasks.filter((task) => task.trim());
+                      for (const taskTitle of filteredTasks) {
+                        await createTask({
+                          workspaceId,
+                          projectId,
+                          data: {
+                            title: taskTitle,
+                            description: "", // or add a description input per task if needed
+                            status: "TODO",
+                            priority: "MEDIUM",
+                            assignedTo: authData?.user?._id || "", // fallback to empty string if not loaded
+                            dueDate: new Date().toISOString(), // or let user pick
+                          },
+                        });
+                      }
+                      queryClient.invalidateQueries();
+                      toast({
+                        title: "Success",
+                        description: "Workspace, project, and tasks created!",
+                        variant: "success",
+                      });
+                      navigate(`/workspace/${workspaceId}/project/${projectId}`);
+                    } catch (error: any) {
+                      toast({
+                        title: "Error",
+                        description: error?.message || "Something went wrong",
+                        variant: "destructive",
+                      });
+                    }
+                  }}
+                  disabled={tasks.every((task) => !task.trim()) || isCreatingWorkspace || isCreatingProject || isCreatingTask}
                 >
-                  Continue
+                  {isCreatingWorkspace || isCreatingProject || isCreatingTask ? "Creating..." : "Create Project"}
                 </button>
+                <div style={{ marginTop: "16px" }}>
+                  <button
+                    className="button-secondary"
+                    onClick={() => setStep(step - 1)}
+                    style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "14px" }}
+                  >
+                    ← Back
+                  </button>
+                </div>
               </>
             )}
           </div>
+         
         </div>
         {/* Right Side */}
         <div className="project-preview-outer">
@@ -112,9 +274,9 @@ const ProjectSetup: React.FC = () => {
               </div>
               <div className="project-preview-title-nav">
                 <div className="project-preview-title">
-                  {projectName ? (
+                  {workspaceName ? (
                     <span className="project-preview-pill">
-                      <AnimatedLetters text={projectName} />
+                      <AnimatedLetters text={workspaceName} />
                     </span>
                   ) : (
                     <div className="project-preview-pill-placeholder"></div>
@@ -143,7 +305,93 @@ const ProjectSetup: React.FC = () => {
                 </div>
               </div>
             </div>
-            <div style={{ padding: "32px 24px" }}>
+            <div style={{ padding: "32px 24px", maxHeight: "600px", overflowY: "auto" }}>
+     
+              {/* Workspace Description Section */}
+              {workspaceDescription && (
+                <div style={{
+                  marginBottom: "16px",
+                  padding: "16px",
+                  backgroundColor: "#f8f9fa",
+                  borderRadius: "8px",
+                  border: "1px solid #e9ecef"
+                }}>
+                           
+                  <h3 style={{
+                    fontSize: "15px",
+                    fontWeight: 600,
+                    marginBottom: "8px",
+                    color: "#495057"
+                  }}>
+                    Workspace Description
+                  </h3>
+                  <p style={{
+                    fontSize: "14px",
+                    lineHeight: "1.5",
+                    color: "#6c757d",
+                    margin: 0,
+                    wordWrap: "break-word",
+                    overflowWrap: "break-word",
+                    whiteSpace: "pre-wrap"
+                  }}>
+                    {workspaceDescription}
+                  </p>
+                </div>
+              )}
+              {/* Project Description Section */}
+              {projectName && (
+                <div style={{
+                  marginBottom: "12px",
+                  fontWeight: 600,
+                  fontSize: "20px",
+                  color: "#222"
+                }}>
+                  <AnimatedLetters text={projectName} />
+                </div>
+              )}
+              {projectDescription && (
+                <div style={{
+                  marginBottom: "16px",
+                  padding: "16px",
+                  backgroundColor: "#f8f9fa",
+                  borderRadius: "8px",
+                  border: "1px solid #e9ecef"
+                }}>
+                  <h3 style={{
+                    fontSize: "15px",
+                    fontWeight: 600,
+                    marginBottom: "8px",
+                    color: "#495057"
+                  }}>
+                    Project Description
+                  </h3>
+                  <p style={{
+                    fontSize: "14px",
+                    lineHeight: "1.5",
+                    color: "#6c757d",
+                    margin: 0,
+                    wordWrap: "break-word",
+                    overflowWrap: "break-word",
+                    whiteSpace: "pre-wrap"
+                  }}>
+                    {projectDescription}
+                  </p>
+                </div>
+              )}
+              {/* Placeholder if neither description is set */}
+              {!workspaceDescription && !projectDescription && (
+                <div style={{
+                  marginBottom: "16px",
+                  padding: "16px",
+                  backgroundColor: "#f8f9fa",
+                  borderRadius: "8px",
+                  border: "1px solid #e9ecef",
+                  color: "#bbb",
+                  textAlign: "center"
+                }}>
+                  No description provided
+                </div>
+              )}
              
               <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
                 {tasks.map((task, idx) =>
@@ -161,13 +409,6 @@ const ProjectSetup: React.FC = () => {
                     </li>
                   )
                 )}
-                {/* Add empty lines for visual balance */}
-                {Array.from({ length: Math.max(0, 8 - tasks.length) }).map((_, idx) => (
-                  <li key={tasks.length + idx} style={{ display: "flex", alignItems: "center", marginBottom: 12, opacity: 0.15 }}>
-                    <svg width="20" height="20" fill="#eee" style={{ marginRight: 12 }} viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="#eee" strokeWidth="2" fill="none"/></svg>
-                    <span style={{ fontSize: 18 }} key={tasks.length + idx}> </span>
-                  </li>
-                ))}
               </ul>
             </div>
           </div>

@@ -1,49 +1,31 @@
+import React from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import Logo from "@/components/logo";
-import GoogleOauthButton from "@/components/auth/google-oauth-button";
+import { useMutation } from "@tanstack/react-query";
 import { registerMutationFn } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
-import { useMutation } from "@tanstack/react-query";
-import { Loader } from "lucide-react";
+import GoogleOauthButton from "@/components/auth/google-oauth-button";
+import "./login-signup.css";
 
 const SignUp = () => {
-    const navigate = useNavigate()
-    const {mutate, isPending} = useMutation({
-      mutationFn: registerMutationFn ,
-    }); 
+  const navigate = useNavigate();
+  const { mutate, isPending } = useMutation({
+    mutationFn: registerMutationFn,
+  });
   const formSchema = z.object({
     name: z.string().trim().min(1, {
       message: "Name is required",
     }),
     email: z.string().trim().email("Invalid email address").min(1, {
-      message: "Workspace name is required",
+      message: "Email is required",
     }),
     password: z.string().trim().min(1, {
       message: "Password is required",
     }),
   });
-
-  const form = useForm<z.infer<typeof formSchema>>({
+  const form = useForm({
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: "",
@@ -51,15 +33,13 @@ const SignUp = () => {
       password: "",
     },
   });
-
-  const onSubmit = (values: z.infer<typeof formSchema>) => {
+  const onSubmit = (values: { name: string; email: string; password: string }) => {
     if (isPending) return;
     mutate(values, {
       onSuccess: () => {
-        navigate("/");
+        navigate("/ProjectSetup");
       },
       onError: (error) => {
-        console.log(error);
         toast({
           title: "Error",
           description: error.message,
@@ -68,125 +48,107 @@ const SignUp = () => {
       },
     });
   };
-
   return (
-    <div className="flex min-h-svh flex-col items-center justify-center gap-6 bg-muted p-6 md:p-10">
-      <div className="flex w-full max-w-sm flex-col gap-6">
-        <Link
-          to="/"
-          className="flex items-center gap-2 self-center font-medium"
-        >
-          <Logo />
-         AdminiX.
-        </Link>
-        <div className="flex flex-col gap-6">
-          <Card>
-            <CardHeader className="text-center">
-              <CardTitle className="text-xl">Create an account</CardTitle>
-              <CardDescription>
-                Signup with your Email or Google account
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Form {...form}>
+    <div className="login-root">
+      <div className="box-root flex-flex flex-direction--column" style={{ minHeight: "100vh", flexGrow: 1 }}>
+        <div className="loginbackground box-background--white padding-top--64">
+          <div className="loginbackground-gridContainer">
+            <div className="box-root flex-flex" style={{ gridArea: "top / start / 8 / end" }}>
+              <div className="box-root" style={{ backgroundImage: "linear-gradient(white 0%, rgb(247, 250, 252) 33%)", flexGrow: 1 }}></div>
+            </div>
+            <div className="box-root flex-flex" style={{ gridArea: "4 / 2 / auto / 5" }}>
+              <div className="box-root box-divider--light-all-2 animationLeftRight tans3s" style={{ flexGrow: 1 }}></div>
+            </div>
+            <div className="box-root flex-flex" style={{ gridArea: "6 / start / auto / 2" }}>
+              <div className="box-root box-background--blue800" style={{ flexGrow: 1 }}></div>
+            </div>
+            <div className="box-root flex-flex" style={{ gridArea: "7 / start / auto / 4" }}>
+              <div className="box-root box-background--blue animationLeftRight" style={{ flexGrow: 1 }}></div>
+            </div>
+            <div className="box-root flex-flex" style={{ gridArea: "8 / 4 / auto / 6" }}>
+              <div className="box-root box-background--gray100 animationLeftRight tans3s" style={{ flexGrow: 1 }}></div>
+            </div>
+            <div className="box-root flex-flex" style={{ gridArea: "2 / 15 / auto / end" }}>
+              <div className="box-root box-background--cyan200 animationRightLeft tans4s" style={{ flexGrow: 1 }}></div>
+            </div>
+            <div className="box-root flex-flex" style={{ gridArea: "3 / 14 / auto / end" }}>
+              <div className="box-root box-background--blue animationRightLeft" style={{ flexGrow: 1 }}></div>
+            </div>
+            <div className="box-root flex-flex" style={{ gridArea: "4 / 17 / auto / 20" }}>
+              <div className="box-root box-background--gray100 animationRightLeft tans4s" style={{ flexGrow: 1 }}></div>
+            </div>
+            <div className="box-root flex-flex" style={{ gridArea: "5 / 14 / auto / 17" }}>
+              <div className="box-root box-divider--light-all-2 animationRightLeft tans3s" style={{ flexGrow: 1 }}></div>
+            </div>
+          </div>
+        </div>
+        <div className="box-root padding-top--24 flex-flex flex-direction--column" style={{ flexGrow: 1, zIndex: 9 }}>
+          <div className="box-root padding-top--48 padding-bottom--24 flex-flex flex-justifyContent--center">
+            <h1><a href="/">AdminiX</a></h1>
+          </div>
+          <div className="formbg-outer">
+            <div className="formbg">
+              <div className="formbg-inner padding-horizontal--48">
+                <span className="padding-bottom--15">Sign up for an account</span>
                 <form onSubmit={form.handleSubmit(onSubmit)}>
-                  <div className="grid gap-6">
-                    <div className="flex flex-col gap-4">
-                      <GoogleOauthButton label="Signup" />
-                    </div>
-                    <div className="relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t after:border-border">
-                      <span className="relative z-10 bg-background px-2 text-muted-foreground">
-                        Or continue with
-                      </span>
-                    </div>
-                    <div className="grid gap-2">
-                      <div className="grid gap-2">
-                        <FormField
-                          control={form.control}
-                          name="name"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel className="dark:text-[#f1f7feb5] text-sm">
-                                Name
-                              </FormLabel>
-                              <FormControl>
-                                <Input
-                                  placeholder="Joh Doe"
-                                  className="!h-[48px]"
-                                  {...field}
-                                />
-                              </FormControl>
-
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-                      <div className="grid gap-2">
-                        <FormField
-                          control={form.control}
-                          name="email"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel className="dark:text-[#f1f7feb5] text-sm">
-                                Email
-                              </FormLabel>
-                              <FormControl>
-                                <Input
-                                  placeholder="m@example.com"
-                                  className="!h-[48px]"
-                                  {...field}
-                                />
-                              </FormControl>
-
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-                      <div className="grid gap-2">
-                        <FormField
-                          control={form.control}
-                          name="password"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel className="dark:text-[#f1f7feb5] text-sm">
-                                Password
-                              </FormLabel>
-                              <FormControl>
-                                <Input
-                                  type="password"
-                                  className="!h-[48px]"
-                                  {...field}
-                                />
-                              </FormControl>
-
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-                      <Button type="submit"
+                  <div className="field padding-bottom--24">
+                    <label htmlFor="name">Name</label>
+                    <input
+                      type="text"
+                      id="name"
+                      {...form.register("name")}
                       disabled={isPending}
-                      className="w-full">
-                       {isPending && <Loader className="animate-spin" />}
-                        Sign up
-                      </Button>
-                    </div>
-                    <div className="text-center text-sm">
-                      Already have an account?{" "}
-                      <Link to="/" className="underline underline-offset-4">
-                        Sign in
-                      </Link>
-                    </div>
+                    />
+                    {form.formState.errors.name && (
+                      <div className="form-error">{form.formState.errors.name.message}</div>
+                    )}
+                  </div>
+                  <div className="field padding-bottom--24">
+                    <label htmlFor="email">Email</label>
+                    <input
+                      type="email"
+                      id="email"
+                      {...form.register("email")}
+                      disabled={isPending}
+                    />
+                    {form.formState.errors.email && (
+                      <div className="form-error">{form.formState.errors.email.message}</div>
+                    )}
+                  </div>
+                  <div className="field padding-bottom--24">
+                    <label htmlFor="password">Password</label>
+                    <input
+                      type="password"
+                      id="password"
+                      {...form.register("password")}
+                      disabled={isPending}
+                    />
+                    {form.formState.errors.password && (
+                      <div className="form-error">{form.formState.errors.password.message}</div>
+                    )}
+                  </div>
+                  <div className="field padding-bottom--24">
+                    <input
+                      type="submit"
+                      name="submit"
+                      value={isPending ? "Signing up..." : "Sign up"}
+                      disabled={isPending}
+                    />
+                  </div>
+                  <div className="field">
+                    <GoogleOauthButton label="Signup with Google" />
                   </div>
                 </form>
-              </Form>
-            </CardContent>
-          </Card>
-          <div className="text-balance text-center text-xs text-muted-foreground [&_a]:underline [&_a]:underline-offset-4 [&_a]:hover:text-primary  ">
-            By clicking continue, you agree to our{" "}
-            <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>.
+              </div>
+            </div>
+            <div className="footer-link padding-top--24">
+              <span>Already have an account? <Link to="/">Sign in</Link></span>
+              <div className="listing padding-top--24 padding-bottom--24 flex-flex center-center">
+                <span><a href="#">© AdminiX</a></span>
+                <span><a href="#">Contact</a></span>
+                <span><a href="#">Privacy & terms</a></span>
+              </div>
+            </div>
           </div>
         </div>
       </div>

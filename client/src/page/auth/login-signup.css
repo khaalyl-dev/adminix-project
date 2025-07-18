@@ -50,6 +50,7 @@
 }
 .login-root .loginbackground-gridContainer {
     display: grid;
+    padding-top: 200px;
     grid-template-columns: [start] 1fr [left-gutter] repeat(16,86.6px) [left-gutter] 1fr [end];
     grid-template-rows: [top] 1fr [top-gutter] repeat(8,64px) [bottom-gutter] 1fr [bottom];
     justify-content: center;
@@ -81,7 +82,7 @@
   padding-top: 24px;
 }
 .login-root .padding-top--48 {
-  padding-top: 48px;
+  padding-top: 100px;
 }
 .login-root .padding-bottom--24 {
   padding-bottom: 24px;
