@@ -10,7 +10,15 @@ const member_model_1 = __importDefault(require("../models/member.model"));
 const roles_permission_model_1 = __importDefault(require("../models/roles-permission.model"));
 const workspace_model_1 = __importDefault(require("../models/workspace.model"));
 const app_error_1 = require("../utils/app.error");
+const user_model_1 = __importDefault(require("../models/user.model"));
 const getMemberRoleInWorkspace = async (userId, workspaceId) => {
+    // If the user is SUPER_ADMIN, allow access to any workspace (view-only)
+    const user = await user_model_1.default.findById(userId);
+    if (user && user.role === role_enum_1.Roles.SUPER_ADMIN) {
+        // SUPER_ADMIN can view all workspaces, even if not a member
+        return { role: role_enum_1.Roles.SUPER_ADMIN };
+    }
+    // Existing logic for members
     const workspace = await workspace_model_1.default.findById(workspaceId);
     if (!workspace) {
         throw new app_error_1.NotFoundException("Workspace not found");

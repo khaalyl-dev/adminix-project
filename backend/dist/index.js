@@ -3,6 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.io = void 0;
 require("dotenv/config");
 const express_1 = __importDefault(require("express"));
 const cors_1 = __importDefault(require("cors"));
@@ -23,6 +24,8 @@ const workspace_route_1 = __importDefault(require("./routes/workspace.route"));
 const member_route_1 = __importDefault(require("./routes/member.route"));
 const project_route_1 = __importDefault(require("./routes/project.route"));
 const task_route_1 = __importDefault(require("./routes/task.route"));
+const http_1 = __importDefault(require("http"));
+const socket_io_1 = require("socket.io");
 const app = (0, express_1.default)();
 const BASE_PATH = app_config_1.config.BASE_PATH;
 app.use(express_1.default.json());
@@ -54,7 +57,26 @@ app.use(`${BASE_PATH}/member`, isAuthenticated_middleware_1.default, member_rout
 app.use(`${BASE_PATH}/project`, isAuthenticated_middleware_1.default, project_route_1.default);
 app.use(`${BASE_PATH}/task`, isAuthenticated_middleware_1.default, task_route_1.default);
 app.use(errorHandler_middleware_1.errorHandler);
-app.listen(app_config_1.config.PORT, async () => {
+const server = http_1.default.createServer(app);
+exports.io = new socket_io_1.Server(server, {
+    cors: {
+        origin: app_config_1.config.FRONTEND_ORIGIN,
+        credentials: true,
+    },
+});
+exports.io.on("connection", (socket) => {
+    socket.on("join", ({ workspaceId }) => {
+        if (workspaceId) {
+            socket.join(workspaceId.toString());
+        }
+    });
+    socket.on("leave", ({ workspaceId }) => {
+        if (workspaceId) {
+            socket.leave(workspaceId.toString());
+        }
+    });
+});
+server.listen(app_config_1.config.PORT, async () => {
     console.log(`Server listening on port ${app_config_1.config.PORT} in ${app_config_1.config.NODE_ENV}`);
     await (0, database_config_1.default)();
 });

@@ -10,5 +10,7 @@ workspaceRoutes.delete("/delete/:id", workspace_controller_1.deleteWorkspaceById
 workspaceRoutes.get("/all", workspace_controller_1.getAllWorkspacesUserIsMemberController);
 workspaceRoutes.get("/members/:id", workspace_controller_1.getWorkspaceMembersController);
 workspaceRoutes.get("/analytics/:id", workspace_controller_1.getWorkspaceAnalyticsController);
+workspaceRoutes.get('/:id/notifications', workspace_controller_1.getWorkspaceNotificationsController);
+workspaceRoutes.patch('/:id/notifications/mark-all-read', workspace_controller_1.markAllNotificationsAsReadController);
 workspaceRoutes.get("/:id", workspace_controller_1.getWorkspaceByIdController);
 exports.default = workspaceRoutes;

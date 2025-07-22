@@ -9,6 +9,34 @@ import { createProjectService, deleteProjectService, getProjectAnalyticsService,
 import { HTTPSTATUS } from "../config/http.config";
 import Notification from "../models/notification.model";
 import { io } from "../index";
+import Activity from '../models/activity.model';
+import File from '../models/file.model';
+import multer from 'multer';
+import path from 'path';
+import { Request as ExpressRequest } from 'express';
+import { FileFilterCallback } from 'multer';
+// Use Express.Multer.File for file type
+
+
+// Multer setup
+const storage = multer.diskStorage({
+  destination: function (
+    req: ExpressRequest,
+    file: Express.Multer.File,
+    cb: (error: Error | null, destination: string) => void
+  ) {
+    cb(null, path.join(__dirname, '../../uploads'));
+  },
+  filename: function (
+    req: ExpressRequest,
+    file: Express.Multer.File,
+    cb: (error: Error | null, filename: string) => void
+  ) {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, uniqueSuffix + '-' + file.originalname);
+  }
+});
+export const upload = multer({ storage });
 
 
 export const createProjectController = asyncHandler(
@@ -29,6 +57,13 @@ export const createProjectController = asyncHandler(
       message: `Project '${project.name}' created`,
     });
     io.to(workspaceId.toString()).emit('notification', notification);
+
+    await Activity.create({
+      projectId: project._id,
+      userId: userId,
+      type: 'project_create',
+      message: `Project created: ${project.name}`,
+    });
 
     return res.status(HTTPSTATUS.CREATED).json({
       message: "Project created successfully",
@@ -111,14 +146,15 @@ export const getProjectAnalyticsController = asyncHandler (
 export const updateProjectController = asyncHandler(
   async (req: Request, res: Response) => {
     const userId = req.user?._id;
-
-    const projectId = projectIdSchema.parse(req.params.id);
     const workspaceId = workspaceIdSchema.parse(req.params.workspaceId);
-
+    const projectId = projectIdSchema.parse(req.params.id);
     const body = updateProjectSchema.parse(req.body);
-
     const { role } = await getMemberRoleInWorkspace(userId, workspaceId);
     roleGuard(role, [Permissions.EDIT_PROJECT]);
+
+    // Fetch old project for comparison
+    const oldProject = await getProjectByIdAndWorkspaceIdService(workspaceId, projectId);
+    const old = oldProject.project;
 
     const { project } = await updateProjectService(
       workspaceId,
@@ -134,6 +170,28 @@ export const updateProjectController = asyncHandler(
     });
     io.to(workspaceId.toString()).emit('notification', notification);
 
+    // Build activity message with attribute changes
+    let changes = [];
+    if (body.name && body.name !== old.name) {
+      changes.push(`name from "${old.name}" to "${body.name}"`);
+    }
+    if (body.description && body.description !== old.description) {
+      changes.push(`description from "${old.description || ''}" to "${body.description}"`);
+    }
+    if (body.emoji && body.emoji !== old.emoji) {
+      changes.push(`emoji from "${old.emoji || ''}" to "${body.emoji}"`);
+    }
+    const activityMsg = changes.length > 0
+      ? `Project updated: ${changes.join(', ')}`
+      : `Project updated: ${project.name}`;
+
+    await Activity.create({
+      projectId: project._id,
+      userId: userId,
+      type: 'project_update',
+      message: activityMsg,
+    });
+
     return res.status(HTTPSTATUS.OK).json({
       message: "Project updated successfully",
       project,
@@ -142,27 +200,99 @@ export const updateProjectController = asyncHandler(
 );
 
 export const deleteProjectController = asyncHandler(
-async(req: Request, res: Response) => {
- const userId = req.user?._id;
-
-    const projectId = projectIdSchema.parse(req.params.id);
+  async (req: Request, res: Response) => {
+    const userId = req.user?._id;
     const workspaceId = workspaceIdSchema.parse(req.params.workspaceId);
-
+    const projectId = projectIdSchema.parse(req.params.id);
     const { role } = await getMemberRoleInWorkspace(userId, workspaceId);
     roleGuard(role, [Permissions.DELETE_PROJECT]);
-
-    await deleteProjectService(workspaceId, projectId);
+    const project = await deleteProjectService(workspaceId, projectId);
     // Create notification
     const notification = await Notification.create({
       userId,
       workspaceId,
       type: 'project',
-      message: `Project deleted`,
+      message: `Project '${project.name}' deleted`,
     });
     io.to(workspaceId.toString()).emit('notification', notification);
-
-    return res.status(HTTPSTATUS.OK).json({
-      message: "Project deleted successfully",
+    await Activity.create({
+      projectId: project._id,
+      userId: userId,
+      type: 'project_delete',
+      message: `Project deleted: ${project.name}`,
     });
-}
+    return res.status(HTTPSTATUS.OK).json({
+      message: 'Project deleted successfully',
+      project,
+    });
+  }
+);
+
+export const getProjectActivitiesController = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { id: projectId } = req.params;
+    const activities = await Activity.find({ projectId })
+      .sort({ createdAt: -1 })
+      .populate('userId', 'name profilePicture');
+    res.status(200).json({ activities });
+  }
+);
+
+export const postProjectActivityController = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { id: projectId } = req.params;
+    const userId = req.user?._id;
+    const { type, message, meta } = req.body;
+    if (!type || !message) {
+      return res.status(400).json({ message: 'Type and message are required' });
+    }
+    const activity = await Activity.create({
+      projectId,
+      userId,
+      type,
+      message,
+      meta,
+    });
+    await activity.populate('userId', 'name profilePicture');
+    res.status(201).json({ activity });
+  }
+);
+
+export const pinProjectActivityController = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { activityId } = req.params;
+    const activity = await Activity.findByIdAndUpdate(activityId, { pinned: true }, { new: true });
+    if (!activity) return res.status(404).json({ message: 'Activity not found' });
+    res.status(200).json({ activity });
+  }
+);
+
+export const unpinProjectActivityController = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { activityId } = req.params;
+    const activity = await Activity.findByIdAndUpdate(activityId, { pinned: false }, { new: true });
+    if (!activity) return res.status(404).json({ message: 'Activity not found' });
+    res.status(200).json({ activity });
+  }
+);
+
+export const getProjectFilesController = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { id: projectId } = req.params;
+    const files = await File.find({ projectId }).sort({ uploadedAt: -1 });
+    res.status(200).json({ files });
+  }
+);
+
+export const uploadProjectFileController = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { id: projectId } = req.params;
+    const userId = req.user?._id;
+    const file = req.file as Express.Multer.File;
+    const name = req.body.name || (file ? file.originalname : undefined);
+    if (!file || !name) return res.status(400).json({ message: 'File and name are required' });
+    const url = `/uploads/${file.filename}`;
+    const savedFile = await File.create({ projectId, userId, name, url });
+    res.status(201).json({ file: savedFile });
+  }
 );

@@ -11,6 +11,9 @@ import { createTaskService, deleteTaskService, getAllTasksService, getTaskByIdSe
 import Notification from "../models/notification.model";
 import { io } from "../index";
 import Comment from '../models/comment.model';
+import Activity from '../models/activity.model';
+import TaskModel from '../models/task.model';
+import { NotFoundException } from "../utils/app.error";
 
 
 export const createTaskController = asyncHandler(
@@ -39,6 +42,13 @@ const userId = req.user?._id;
     });
     io.to(workspaceId.toString()).emit('notification', notification);
 
+    await Activity.create({
+      projectId: projectId,
+      userId: userId,
+      type: 'task_create',
+      message: `Task created: ${task.title}`,
+    });
+
     return res.status(HTTPSTATUS.OK).json({
       message: "Task created successfully",
       task,
@@ -49,37 +59,71 @@ const userId = req.user?._id;
 
 export const updateTaskController = asyncHandler(
     async(req: Request, res: Response) => {
-          const userId = req.user?._id;
+        const userId = req.user?._id;
+        const taskId = taskIdSchema.parse(req.params.id);
+        const projectId = projectIdSchema.parse(req.params.projectId);
+        const workspaceId = workspaceIdSchema.parse(req.params.workspaceId);
+        const body = updateTaskSchema.parse(req.body);
+        const { role } = await getMemberRoleInWorkspace(userId, workspaceId);
+        roleGuard(role, [Permissions.EDIT_TASK]);
 
-    const body = updateTaskSchema.parse(req.body);
+        // Fetch old task for comparison
+        const oldTask = await TaskModel.findById(taskId);
+        if (!oldTask) {
+          throw new NotFoundException("Task not found.");
+        }
 
-    const taskId = taskIdSchema.parse(req.params.id);
-    const projectId = projectIdSchema.parse(req.params.projectId);
-    const workspaceId = workspaceIdSchema.parse(req.params.workspaceId);
+        const { updatedTask } = await updateTaskService(
+          workspaceId,
+          projectId,
+          taskId,
+          body
+        );
+        // Create notification
+        const notification = await Notification.create({
+          userId,
+          workspaceId,
+          type: 'task',
+          message: `Task '${updatedTask.title}' updated`,
+        });
+        io.to(workspaceId.toString()).emit('notification', notification);
 
-    const { role } = await getMemberRoleInWorkspace(userId, workspaceId);
-    roleGuard(role, [Permissions.EDIT_TASK]);
+        // Build activity message with attribute changes
+        let changes = [];
+        if (body.title && body.title !== oldTask.title) {
+          changes.push(`title from "${oldTask.title}" to "${body.title}"`);
+        }
+        if (body.description && body.description !== oldTask.description) {
+          changes.push(`description from "${oldTask.description || ''}" to "${body.description}"`);
+        }
+        if (body.priority && body.priority !== oldTask.priority) {
+          changes.push(`priority from "${oldTask.priority}" to "${body.priority}"`);
+        }
+        if (body.status && body.status !== oldTask.status) {
+          changes.push(`status from "${oldTask.status}" to "${body.status}"`);
+        }
+        if (body.assignedTo && (!oldTask.assignedTo || body.assignedTo.toString() !== oldTask.assignedTo.toString())) {
+          changes.push(`assignedTo from "${oldTask.assignedTo || ''}" to "${body.assignedTo}"`);
+        }
+        if (body.dueDate && oldTask.dueDate && new Date(body.dueDate).toISOString() !== oldTask.dueDate.toISOString()) {
+          changes.push(`dueDate from "${oldTask.dueDate.toISOString()}" to "${new Date(body.dueDate).toISOString()}"`);
+        }
+        const activityMsg = changes.length > 0
+          ? `Task updated: ${changes.join(', ')}`
+          : `Task updated: ${updatedTask.title}`;
 
-    const { updatedTask } = await updateTaskService(
-      workspaceId,
-      projectId,
-      taskId,
-      body
-    );
-    // Create notification
-    const notification = await Notification.create({
-      userId,
-      workspaceId,
-      type: 'task',
-      message: `Task '${updatedTask.title}' updated`,
-    });
-    io.to(workspaceId.toString()).emit('notification', notification);
+        await Activity.create({
+          projectId: projectId,
+          userId: userId,
+          type: 'task_update',
+          message: activityMsg,
+        });
 
-    return res.status(HTTPSTATUS.OK).json({
-      message: "Task updated successfully",
-      task: updatedTask,
-    });
-  }    
+        return res.status(HTTPSTATUS.OK).json({
+          message: "Task updated successfully",
+          task: updatedTask,
+        });
+    }
 );
 
 export const getAllTasksController = asyncHandler(
@@ -144,6 +188,7 @@ export const deleteTaskController = asyncHandler(
     
     const taskId = taskIdSchema.parse(req.params.id);
     const workspaceId = workspaceIdSchema.parse(req.params.workspaceId);
+    const projectId = projectIdSchema.parse(req.params.projectId);
 
     const { role } = await getMemberRoleInWorkspace(userId, workspaceId);
     roleGuard(role, [Permissions.DELETE_TASK]);
@@ -157,6 +202,13 @@ export const deleteTaskController = asyncHandler(
       message: `Task deleted`,
     });
     io.to(workspaceId.toString()).emit('notification', notification);
+
+    await Activity.create({
+      projectId: projectId,
+      userId: userId,
+      type: 'task_delete',
+      message: `Task deleted: ${taskId}`,
+    });
 
     return res.status(HTTPSTATUS.OK).json({
       message: "Task deleted successfully",
@@ -189,6 +241,14 @@ export const postTaskCommentController = asyncHandler(
       message,
     });
     await comment.populate('userId', 'name profilePicture');
+    // Log activity
+    const task = await TaskModel.findById(taskId);
+    await Activity.create({
+      projectId: task?.project,
+      userId,
+      type: 'comment_create',
+      message: `Commented: ${message}`,
+    });
     res.status(201).json({ comment });
   }
 ); 
@@ -209,6 +269,14 @@ export const editTaskCommentController = asyncHandler(
     comment.message = message;
     await comment.save();
     await comment.populate('userId', 'name profilePicture');
+    // Log activity
+    const task = await TaskModel.findById(taskId);
+    await Activity.create({
+      projectId: task?.project,
+      userId,
+      type: 'comment_edit',
+      message: `Edited a comment: ${message}`,
+    });
     res.status(200).json({ comment });
   }
 );
@@ -223,6 +291,14 @@ export const deleteTaskCommentController = asyncHandler(
       return res.status(403).json({ message: 'You can only delete your own comments' });
     }
     await comment.deleteOne();
+    // Log activity
+    const task = await TaskModel.findById(taskId);
+    await Activity.create({
+      projectId: task?.project,
+      userId,
+      type: 'comment_delete',
+      message: `Deleted a comment`,
+    });
     res.status(204).send();
   }
 ); 

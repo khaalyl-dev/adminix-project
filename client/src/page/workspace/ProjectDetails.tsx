@@ -2,17 +2,488 @@ import { Separator } from "@/components/ui/separator";
 import ProjectAnalytics from "@/components/workspace/project/project-analytics";
 import ProjectHeader from "@/components/workspace/project/project-header";
 import TaskTable from "@/components/workspace/task/task-table";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { useState } from "react";
+import axios from 'axios';
+import { useEffect } from 'react';
+import { useParams } from 'react-router-dom';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { formatDistanceToNow, format } from 'date-fns';
+import { MessageCircle, FileText, Calendar, Loader2, Paperclip, Link as LinkIcon, Star, Pin, PinOff } from 'lucide-react';
+import { useAuthContext } from '@/context/auth-provider';
+import useWorkspaceId from '@/hooks/use-workspace-id';
+import { getAllTasksQueryFn, getProjectByIdQueryFn, getProjectFilesController, uploadProjectFileController } from '@/lib/api';
+import { useQuery } from '@tanstack/react-query';
+import useGetWorkspaceMembers from '@/hooks/api/use-get-workspace-members';
+
+function getActivityIcon(type: string) {
+  // Return a black dot for all activity types
+  return <span className="block w-3 h-3 rounded-full bg-black" />;
+}
+
+function groupByDay(activities: any[]) {
+  const groups: Record<string, any[]> = {};
+  activities.forEach((a) => {
+    const day = format(new Date(a.createdAt), 'PPP');
+    if (!groups[day]) groups[day] = [];
+    groups[day].push(a);
+  });
+  return groups;
+}
+
+function ActivityLogTab({ onPinChange }: { onPinChange?: () => void }) {
+  const { projectId } = useParams();
+  const workspaceId = useWorkspaceId();
+  const { user } = useAuthContext();
+  const [activities, setActivities] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [comment, setComment] = useState('');
+  const [posting, setPosting] = useState(false);
+  const [filter, setFilter] = useState('all');
+  const [search, setSearch] = useState('');
+  const [mentionDropdown, setMentionDropdown] = useState<{ open: boolean; index: number; query: string; type: 'member' | 'task'; position: { top: number; left: number } }>({ open: false, index: 0, query: '', type: 'member', position: { top: 0, left: 0 } });
+
+  // Fetch members
+  const { data: memberData } = useGetWorkspaceMembers(workspaceId);
+  const members = memberData?.members || [];
+
+  // Fetch tasks for the project
+  const { data: taskData } = useQuery({
+    queryKey: ['all-tasks', workspaceId, projectId],
+    queryFn: () => getAllTasksQueryFn({ workspaceId, projectId, pageNumber: undefined, pageSize: undefined }),
+    enabled: !!workspaceId && !!projectId,
+  });
+  const tasks = taskData?.tasks || [];
+
+  // Handle @ and # mention trigger
+  const handleCommentInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setComment(value);
+    const cursorPos = e.target.selectionStart;
+    const textUpToCursor = value.slice(0, cursorPos);
+    const atMatch = /@([\w]*)$/.exec(textUpToCursor);
+    const hashMatch = /#([\w]*)$/.exec(textUpToCursor);
+    if (atMatch) {
+      setMentionDropdown({
+        open: true,
+        index: 0,
+        query: atMatch[1],
+        type: 'member',
+        position: { top: e.target.offsetTop + 30, left: e.target.offsetLeft + 10 },
+      });
+    } else if (hashMatch) {
+      setMentionDropdown({
+        open: true,
+        index: 0,
+        query: hashMatch[1],
+        type: 'task',
+        position: { top: e.target.offsetTop + 30, left: e.target.offsetLeft + 10 },
+      });
+    } else {
+      setMentionDropdown((d) => ({ ...d, open: false }));
+    }
+  };
+
+  // Filter for dropdown
+  const filteredMembers = mentionDropdown.type === 'member' && mentionDropdown.query
+    ? members.filter((m: any) => m.userId.name.toLowerCase().includes(mentionDropdown.query.toLowerCase()))
+    : members;
+  const filteredTasks = mentionDropdown.type === 'task' && mentionDropdown.query
+    ? tasks.filter((t: any) => t.title.toLowerCase().includes(mentionDropdown.query.toLowerCase()))
+    : tasks;
+
+  // Insert mention at cursor
+  const handleSelectMention = (item: any) => {
+    const input = document.getElementById('activity-comment-input') as HTMLInputElement;
+    if (!input) return;
+    const cursorPos = input.selectionStart;
+    let before, after;
+    if (mentionDropdown.type === 'member') {
+      before = comment.slice(0, cursorPos).replace(/@([\w]*)$/, `@${item.userId.name} `);
+    } else {
+      before = comment.slice(0, cursorPos).replace(/#([\w]*)$/, `#${item.title} `);
+    }
+    after = comment.slice(cursorPos);
+    setComment(before + after);
+    setMentionDropdown((d) => ({ ...d, open: false }));
+    setTimeout(() => input.focus(), 0);
+  };
+
+  // Highlight mentions in comments
+  const highlightMentions = (text: string) => {
+    let result = text;
+    members.forEach((m: any) => {
+      const regex = new RegExp(`@${m.userId.name}`, 'g');
+      result = result.replace(regex, `<span class='bg-purple-100 text-purple-700 rounded px-1'>@${m.userId.name}</span>`);
+    });
+    tasks.forEach((t: any) => {
+      const regex = new RegExp(`#${t.title}`, 'g');
+      result = result.replace(regex, `<span class='bg-blue-100 text-blue-700 rounded px-1'>#${t.title}</span>`);
+    });
+    return result;
+  };
+
+  useEffect(() => {
+    if (!projectId) return;
+    setLoading(true);
+    setError(null);
+    axios.get(`/api/project/${projectId}/activities`)
+      .then(res => {
+        console.log('Activity API response:', res.data);
+        setActivities(res.data.activities);
+      })
+      .catch(() => setError('Failed to load activity log'))
+      .finally(() => setLoading(false));
+  }, [projectId]);
+
+  const handlePost = async () => {
+    if (!comment.trim() || !projectId) return;
+    setPosting(true);
+    try {
+      const res = await axios.post(`/api/project/${projectId}/activities`, { type: 'comment', message: comment });
+      setActivities((prev) => [res.data.activity, ...prev]);
+      setComment('');
+    } catch {
+      setError('Failed to post comment');
+    } finally {
+      setPosting(false);
+    }
+  };
+
+  // Pin/unpin handlers
+  const handlePin = async (activityId: string) => {
+    await axios.patch(`/api/project/activities/${activityId}/pin`);
+    setActivities((prev) => prev.map(a => a._id === activityId ? { ...a, pinned: true } : a));
+    onPinChange?.();
+  };
+  const handleUnpin = async (activityId: string) => {
+    await axios.patch(`/api/project/activities/${activityId}/unpin`);
+    setActivities((prev) => prev.map(a => a._id === activityId ? { ...a, pinned: false } : a));
+    onPinChange?.();
+  };
+
+  // Filtering and searching
+  const filteredActivities = activities.filter((a: any) => {
+    if (filter !== 'all' && a.type !== filter) return false;
+    if (search && !a.message.toLowerCase().includes(search.toLowerCase())) return false;
+    return true;
+  });
+  const grouped = groupByDay(filteredActivities);
+  const days = Object.keys(grouped);
+
+  console.log('Activities to render:', activities);
+
+  return (
+    <div className="py-4 max-w-2xl mx-auto">
+      {/* Search and filter bar */}
+      <div className="flex items-center gap-2 mb-4">
+        <Input
+          placeholder="Comment or type '/' for comments"
+          value={comment}
+          onChange={handleCommentInput}
+          onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handlePost(); } }}
+          className="mb-0 flex-1"
+          id="activity-comment-input"
+        />
+        {mentionDropdown.open && (
+          <div style={{ position: 'absolute', top: mentionDropdown.position.top, left: mentionDropdown.position.left, zIndex: 50 }} className="bg-white border rounded shadow-md w-56 max-h-40 overflow-y-auto">
+            {mentionDropdown.type === 'member' && filteredMembers.map((m: any, idx: number) => (
+              <div
+                key={m.userId._id}
+                className={`px-3 py-2 cursor-pointer hover:bg-purple-100 ${mentionDropdown.index === idx ? 'bg-purple-50' : ''}`}
+                onClick={() => handleSelectMention(m)}
+              >
+                <span className="font-medium">{m.userId.name}</span>
+                <span className="ml-2 text-xs text-gray-400">@{m.userId.name}</span>
+              </div>
+            ))}
+            {mentionDropdown.type === 'task' && filteredTasks.map((t: any, idx: number) => (
+              <div
+                key={t._id}
+                className={`px-3 py-2 cursor-pointer hover:bg-blue-100 ${mentionDropdown.index === idx ? 'bg-blue-50' : ''}`}
+                onClick={() => handleSelectMention(t)}
+              >
+                <span className="font-medium">{t.title}</span>
+                <span className="ml-2 text-xs text-gray-400">#{t.title}</span>
+              </div>
+            ))}
+          </div>
+        )}
+        <Button onClick={handlePost} disabled={!comment.trim() || posting} size="sm">
+          {posting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Post'}
+        </Button>
+      </div>
+      <div className="flex items-center gap-2 mb-6">
+        <Input
+          placeholder="Search activity..."
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          className="w-48"
+        />
+        <select
+          className="border rounded px-2 py-1 text-sm text-gray-700"
+          value={filter}
+          onChange={e => setFilter(e.target.value)}
+        >
+          <option value="all">Show all activity</option>
+          <option value="comment">Comments</option>
+          <option value="file">Files</option>
+          <option value="event">Events</option>
+          <option value="task_create">Task Created</option>
+          <option value="task_update">Task Updated</option>
+          <option value="task_delete">Task Deleted</option>
+          <option value="project_update">Project Updated</option>
+        </select>
+      </div>
+      <div>
+        <div className="font-semibold text-lg mb-2">Activity Log</div>
+        {loading ? (
+          <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin text-gray-400" /></div>
+        ) : error ? (
+          <div className="text-center text-red-500 py-8">{error}</div>
+        ) : days.length === 0 ? (
+          <div className="text-center text-gray-400 py-8">No activity yet.</div>
+        ) : (
+          <div className="relative">
+            <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-gray-200 rounded-full" style={{ zIndex: 0 }} />
+            <div className="space-y-8 pl-10">
+              {days.map(day => (
+                <div key={day}>
+                  <div className="text-xs text-gray-500 mb-2 uppercase tracking-wide pl-2">{day}</div>
+                  <div className="space-y-4">
+                    {grouped[day].map((a: any, idx: number) => (
+                      <div key={a._id} className="relative flex gap-3 items-start bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
+                        <div className="absolute left-[-2.1rem] top-6 z-10">
+                          {getActivityIcon(a.type)}
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <Avatar className="w-7 h-7">
+                              <AvatarImage src={a.userId?.profilePicture} alt={a.userId?.name} />
+                              <AvatarFallback>{a.userId?.name?.[0]}</AvatarFallback>
+                            </Avatar>
+                            <span className="font-medium text-sm text-gray-900">{a.userId?.name}</span>
+                            <span className="text-xs text-gray-400">{formatDistanceToNow(new Date(a.createdAt), { addSuffix: true })}</span>
+                            {a.pinned ? (
+                              <button className="ml-2 text-yellow-500" title="Unpin" onClick={() => handleUnpin(a._id)}><PinOff className="w-4 h-4" /></button>
+                            ) : (
+                              <button className="ml-2 text-gray-400 hover:text-yellow-500" title="Pin" onClick={() => handlePin(a._id)}><Pin className="w-4 h-4" /></button>
+                            )}
+                          </div>
+                          <div className="text-gray-800 text-sm whitespace-pre-line" dangerouslySetInnerHTML={{ __html: highlightMentions(a.message) }} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function highlightMentions(text: string, members: any[], tasks: any[]) {
+  let result = text;
+  members.forEach((m: any) => {
+    const regex = new RegExp(`@${m.userId.name}`, 'g');
+    result = result.replace(regex, `<span class='bg-purple-100 text-purple-700 rounded px-1'>@${m.userId.name}</span>`);
+  });
+  tasks.forEach((t: any) => {
+    const regex = new RegExp(`#${t.title}`, 'g');
+    result = result.replace(regex, `<span class='bg-blue-100 text-blue-700 rounded px-1'>#${t.title}</span>`);
+  });
+  return result;
+}
+
+function ProjectSidebar({ project, members, files, pinned, tasks, onFileUpload }: any) {
+  return (
+    <aside className="w-full md:w-80 flex-shrink-0 md:pl-8 mt-8 md:mt-0">
+      {/* Project Overview */}
+      <div className="bg-white rounded-xl border border-gray-100 p-5 mb-6 shadow-sm">
+        <div className="flex items-center gap-2 mb-2">
+          <span className="text-2xl">{project?.emoji || '📊'}</span>
+          <span className="font-bold text-lg">{project?.name || 'Untitled Project'}</span>
+        </div>
+        <div className="text-gray-500 text-sm mb-2">{project?.description || 'No description.'}</div>
+        <div className="flex flex-wrap gap-2 text-xs text-gray-400 mb-2">
+          <span>Status: <span className="text-gray-700 font-medium">{project?.status || 'Active'}</span></span>
+          {project?.createdAt && <span>Created: {format(new Date(project.createdAt), 'PPP')}</span>}
+          {project?.updatedAt && <span>Updated: {format(new Date(project.updatedAt), 'PPP')}</span>}
+          {project?.dueDate && <span>Due: {format(new Date(project.dueDate), 'PPP')}</span>}
+        </div>
+        <div className="flex items-center gap-2 mt-2">
+          <span className="text-xs text-gray-400">Members:</span>
+          {project?.owner && (
+            <Avatar className="w-6 h-6">
+              <AvatarImage src={project.owner.profilePicture} alt={project.owner.name} />
+              <AvatarFallback>{project.owner.name?.[0]}</AvatarFallback>
+            </Avatar>
+          )}
+        </div>
+        <div className="flex items-center gap-1 mt-2 flex-wrap">
+          {members?.map((m: any) => (
+            <Avatar key={m._id} className="w-6 h-6 border-2 border-white -ml-2 first:ml-0">
+              <AvatarImage src={m.userId?.profilePicture} alt={m.userId?.name} />
+              <AvatarFallback>{m.userId?.name?.[0]}</AvatarFallback>
+            </Avatar>
+          ))}
+        </div>
+      </div>
+      {/* Pinned/Important Items */}
+      <div className="bg-white rounded-xl border border-gray-100 p-5 mb-6 shadow-sm">
+        <div className="flex items-center gap-2 mb-3 font-semibold text-sm">
+          <Star className="w-4 h-4 text-yellow-400" />
+          Pinned/Important
+        </div>
+        {pinned?.length ? (
+          <ul className="space-y-2">
+            {pinned.map((item: any) => (
+              <li key={item._id} className="flex items-center gap-2 text-xs text-gray-700">
+                <Pin className="w-4 h-4 text-yellow-400" />
+                <span dangerouslySetInnerHTML={{ __html: highlightMentions(item.message, members, tasks) }} />
+              </li>
+            ))}
+          </ul>
+        ) : <div className="text-xs text-gray-400">No pinned items.</div>}
+      </div>
+      {/* Files & Attachments */}
+      <div className="bg-white rounded-xl border border-gray-100 p-5 shadow-sm">
+        <div className="flex items-center gap-2 mb-3 font-semibold text-sm">
+          <Paperclip className="w-4 h-4 text-gray-400" />
+          Files & Attachments
+        </div>
+        <form className="flex flex-col gap-2 mb-3" onSubmit={onFileUpload} encType="multipart/form-data">
+          <label className="text-xs font-medium text-gray-700" htmlFor="file-upload">Upload a file</label>
+          <div className="flex gap-2 items-center">
+            <Input name="name" placeholder="File name" className="flex-1" required />
+            <Input id="file-upload" name="file" type="file" className="flex-1" required />
+          </div>
+          <Button size="sm" type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded shadow">Upload</Button>
+        </form>
+        {files?.length ? (
+          <ul className="space-y-2">
+            {files.map((file: any) => (
+              <li key={file._id} className="flex items-center gap-3 text-xs text-gray-700 border-b last:border-b-0 py-2">
+                <Paperclip className="w-4 h-4 text-gray-400" />
+                <span className="flex-1 truncate">{file.name}</span>
+                {/* Optional: Show file size and date */}
+                {/* <span className="text-gray-400 ml-2">{formatFileSize(file.size)}</span>
+                <span className="text-gray-400 ml-2">{formatDate(file.uploadedAt)}</span> */}
+                <a
+                  href={`/api/project/files/download/${encodeURIComponent(file.url.split('/').pop() || file.name || '')}`}
+                  download={file.name || ''}
+                  className="text-blue-600 hover:text-blue-800"
+                  title="Download"
+                >
+                  <svg className="w-4 h-4 inline" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5m0 0l5-5m-5 5V4" />
+                  </svg>
+                </a>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <div className="text-xs text-gray-400 flex flex-col items-center py-4">
+            <Paperclip className="w-8 h-8 mb-2 text-gray-200" />
+            No files uploaded yet.
+          </div>
+        )}
+      </div>
+    </aside>
+  );
+}
 
 const ProjectDetails = () => {
+  const { projectId } = useParams();
+  const workspaceId = useWorkspaceId();
+  const [tab, setTab] = useState("analytics");
+  const [pinned, setPinned] = useState<any[]>([]);
+
+  // Fetch real project data
+  const { data: projectData } = useQuery({
+    queryKey: ["singleProject", projectId],
+    queryFn: () => getProjectByIdQueryFn({ workspaceId, projectId }),
+    enabled: !!workspaceId && !!projectId,
+  });
+  const project = projectData?.project;
+
+  // Fetch real members
+  const { data: memberData } = useGetWorkspaceMembers(workspaceId);
+  const members = memberData?.members || [];
+
+  // Fetch files for the project
+  const { data: filesData, refetch: refetchFiles } = useQuery({
+    queryKey: ['project-files', projectId],
+    queryFn: () => axios.get(`/api/project/${projectId}/files`).then(res => res.data.files),
+    enabled: !!projectId,
+  });
+  const files = filesData || [];
+
+  // Fetch tasks for the project (for sidebar, etc.)
+  const { data: tasksData } = useQuery({
+    queryKey: ["all-tasks", workspaceId, projectId],
+    queryFn: () => getAllTasksQueryFn({ workspaceId, projectId }),
+    enabled: !!workspaceId && !!projectId,
+  });
+  const tasks = tasksData?.tasks || [];
+
+  // File upload handler (real file upload)
+  const handleFileUpload = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const form = e.currentTarget;
+    const name = (form.elements.namedItem('name') as HTMLInputElement).value;
+    const fileInput = form.elements.namedItem('file') as HTMLInputElement;
+    if (!name || !fileInput.files || !fileInput.files[0]) return;
+    const formData = new FormData();
+    formData.append('name', name);
+    formData.append('file', fileInput.files[0]);
+    await axios.post(`/api/project/${projectId}/files`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    form.reset();
+    refetchFiles();
+  };
+
+  // Compute pinned from activities
+  const handlePinChange = () => {
+    // Refetch or recompute pinned activities
+    axios.get(`/api/project/${projectId}/activities`).then(res => {
+      setPinned(res.data.activities.filter((a: any) => a.pinned));
+    });
+  };
+  useEffect(() => {
+    handlePinChange();
+  }, [projectId]);
+
   return (
-    <div className="w-full space-y-6 py-4 md:pt-3">
-      <ProjectHeader />
-      <div className="space-y-5">
-        <ProjectAnalytics />
-        <Separator />
-        {/* {Task Table} */}
-        <TaskTable />
+    <div className="w-full flex flex-col md:flex-row space-y-6 md:space-y-0 md:space-x-8 py-4 md:pt-3">
+      <div className="flex-1">
+        <ProjectHeader />
+        <Tabs value={tab} onValueChange={setTab} className="w-full">
+          <TabsList className="mb-4">
+            <TabsTrigger value="analytics">Analytics</TabsTrigger>
+            <TabsTrigger value="tasks">Tasks</TabsTrigger>
+            <TabsTrigger value="activity">Activity Log</TabsTrigger>
+          </TabsList>
+          <TabsContent value="analytics">
+            <ProjectAnalytics />
+            <Separator />
+          </TabsContent>
+          <TabsContent value="tasks">
+            <TaskTable />
+          </TabsContent>
+          <TabsContent value="activity">
+            <ActivityLogTab onPinChange={handlePinChange} />
+          </TabsContent>
+        </Tabs>
       </div>
+      <ProjectSidebar project={project} members={members} files={files} pinned={pinned} tasks={tasks} onFileUpload={handleFileUpload} />
     </div>
   );
 };

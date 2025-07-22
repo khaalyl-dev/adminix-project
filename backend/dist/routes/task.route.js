@@ -8,4 +8,8 @@ taskRoutes.delete("/:id/workspace/:workspaceId/delete", task_controller_1.delete
 taskRoutes.put("/:id/project/:projectId/workspace/:workspaceId/update", task_controller_1.updateTaskController);
 taskRoutes.get("/workspace/:workspaceId/all", task_controller_1.getAllTasksController);
 taskRoutes.get("/:id/project/:projectId/workspace/:workspaceId", task_controller_1.getTaskByIdController);
+taskRoutes.get('/:id/comments', task_controller_1.getTaskCommentsController);
+taskRoutes.post('/:id/comments', task_controller_1.postTaskCommentController);
+taskRoutes.patch('/:id/comments/:commentId', task_controller_1.editTaskCommentController);
+taskRoutes.delete('/:id/comments/:commentId', task_controller_1.deleteTaskCommentController);
 exports.default = taskRoutes;

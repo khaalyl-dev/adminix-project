@@ -8,5 +8,11 @@ projectRoutes.put("/:id/workspace/:workspaceId/update", project_controller_1.upd
 projectRoutes.delete("/:id/workspace/:workspaceId/delete", project_controller_1.deleteProjectController);
 projectRoutes.get("/workspace/:workspaceId/all", project_controller_1.getAllProjectsInWorkspaceController);
 projectRoutes.get("/:id/workspace/:workspaceId/analytics", project_controller_1.getProjectAnalyticsController);
+projectRoutes.get('/:id/activities', project_controller_1.getProjectActivitiesController);
+projectRoutes.post('/:id/activities', project_controller_1.postProjectActivityController);
+projectRoutes.patch('/activities/:activityId/pin', project_controller_1.pinProjectActivityController);
+projectRoutes.patch('/activities/:activityId/unpin', project_controller_1.unpinProjectActivityController);
+projectRoutes.get('/:id/files', project_controller_1.getProjectFilesController);
+projectRoutes.post('/:id/files', project_controller_1.upload.single('file'), project_controller_1.uploadProjectFileController);
 projectRoutes.get("/:id/workspace/:workspaceId", project_controller_1.getProjectByIdAndWorkspaceIdController);
 exports.default = projectRoutes;

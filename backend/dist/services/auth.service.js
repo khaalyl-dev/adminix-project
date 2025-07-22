@@ -7,7 +7,11 @@ exports.verifyUserService = exports.registerUserService = exports.loginOrCreateA
 const mongoose_1 = __importDefault(require("mongoose"));
 const user_model_1 = __importDefault(require("../models/user.model"));
 const account_model_1 = __importDefault(require("../models/account.model"));
+const workspace_model_1 = __importDefault(require("../models/workspace.model"));
+const roles_permission_model_1 = __importDefault(require("../models/roles-permission.model"));
+const role_enum_1 = require("../enums/role.enum");
 const app_error_1 = require("../utils/app.error");
+const member_model_1 = __importDefault(require("../models/member.model"));
 const account_provider_enums_1 = require("../enums/account-provider.enums");
 const loginOrCreateAccountService = async (data) => {
     const { providerId, provider, displayName, email, picture } = data;
@@ -16,6 +20,7 @@ const loginOrCreateAccountService = async (data) => {
         session.startTransaction();
         console.log("Start Session ...");
         let user = await user_model_1.default.findOne({ email }).session(session);
+        let isNewUser = false;
         if (!user) {
             //create new user if doesn't exist
             user = new user_model_1.default({
@@ -30,7 +35,29 @@ const loginOrCreateAccountService = async (data) => {
                 providerId: providerId,
             });
             await account.save({ session });
-            // Do NOT create workspace, member, or set currentWorkspace here
+            isNewUser = true;
+        }
+        // If the user is new and has no currentWorkspace, create a default workspace
+        if (!user.currentWorkspace) {
+            const ownerRole = await roles_permission_model_1.default.findOne({ name: role_enum_1.Roles.OWNER });
+            if (!ownerRole) {
+                throw new Error("Owner role not found");
+            }
+            const workspace = new workspace_model_1.default({
+                name: `${user.name || "My Workspace"}`,
+                description: "Default workspace",
+                owner: user._id,
+            });
+            await workspace.save({ session });
+            const member = new member_model_1.default({
+                userId: user._id,
+                workspaceId: workspace._id,
+                role: ownerRole._id,
+                joinedAt: new Date(),
+            });
+            await member.save({ session });
+            user.currentWorkspace = workspace._id;
+            await user.save({ session });
         }
         await session.commitTransaction();
         session.endSession();

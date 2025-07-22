@@ -21,6 +21,7 @@ import projectRoutes from "./routes/project.route";
 import taskRoutes from "./routes/task.route";
 import http from "http";
 import { Server as SocketIOServer } from "socket.io";
+import path from "path";
 
 
 const app= express(); 
@@ -29,6 +30,9 @@ const BASE_PATH = config.BASE_PATH;
 app.use(express.json());
 
 app.use(express.urlencoded({extended:true})); 
+
+// Serve uploads folder statically
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 app.use(
     session({
