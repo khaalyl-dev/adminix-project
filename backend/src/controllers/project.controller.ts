@@ -7,6 +7,8 @@ import { roleGuard } from "../utils/roleGuard";
 import { Permissions } from "../enums/role.enum";
 import { createProjectService, deleteProjectService, getProjectAnalyticsService, getProjectByIdAndWorkspaceIdService, getProjectsInWorkspaceService, updateProjectService } from "../services/project.service";
 import { HTTPSTATUS } from "../config/http.config";
+import Notification from "../models/notification.model";
+import { io } from "../index";
 
 
 export const createProjectController = asyncHandler(
@@ -19,6 +21,14 @@ export const createProjectController = asyncHandler(
     roleGuard(role, [Permissions.CREATE_PROJECT]);
 
     const { project } = await createProjectService(userId, workspaceId, body);
+    // Create notification
+    const notification = await Notification.create({
+      userId,
+      workspaceId,
+      type: 'project',
+      message: `Project '${project.name}' created`,
+    });
+    io.to(workspaceId.toString()).emit('notification', notification);
 
     return res.status(HTTPSTATUS.CREATED).json({
       message: "Project created successfully",
@@ -115,6 +125,14 @@ export const updateProjectController = asyncHandler(
       projectId,
       body
     );
+    // Create notification
+    const notification = await Notification.create({
+      userId,
+      workspaceId,
+      type: 'project',
+      message: `Project '${project.name}' updated`,
+    });
+    io.to(workspaceId.toString()).emit('notification', notification);
 
     return res.status(HTTPSTATUS.OK).json({
       message: "Project updated successfully",
@@ -134,6 +152,14 @@ async(req: Request, res: Response) => {
     roleGuard(role, [Permissions.DELETE_PROJECT]);
 
     await deleteProjectService(workspaceId, projectId);
+    // Create notification
+    const notification = await Notification.create({
+      userId,
+      workspaceId,
+      type: 'project',
+      message: `Project deleted`,
+    });
+    io.to(workspaceId.toString()).emit('notification', notification);
 
     return res.status(HTTPSTATUS.OK).json({
       message: "Project deleted successfully",

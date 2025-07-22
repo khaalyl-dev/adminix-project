@@ -1,0 +1,43 @@
+# OS and editor files
+.DS_Store
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Node and build artifacts
+node_modules/
+dist/
+build/
+
+# Log files
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Misc
+.env
+.env.*
+.cache/
+coverage/
+*.tgz
+
+# Ignore backend and client build artifacts
+backend/node_modules/
+backend/dist/
+client/node_modules/
+client/dist/
+
+# Ignore template build artifacts
+mantis-free-react-admin-template-master/node_modules/
+mantis-free-react-admin-template-master/dist/ 
+
+# Ignore the entire mantis-free-react-admin-template-master folder
+mantis-free-react-admin-template-master/ 

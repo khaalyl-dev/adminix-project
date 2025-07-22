@@ -47,7 +47,7 @@ function AppRoutes() {
         </Route>
         {/* Catch-all for undefined routes */}
         <Route path="*" element={<NotFound />} />
-        <Route path="/ProjectSetup" element={<ProjectSetup />} />
+        <Route path="/ProjectSetup/:workspaceId?" element={<ProjectSetup />} />
               </Routes>
     </BrowserRouter>
   );

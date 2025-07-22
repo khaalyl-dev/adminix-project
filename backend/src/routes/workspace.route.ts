@@ -3,7 +3,7 @@ import { changeWorkspaceMemberRoleController,
      createWorkspaceController,
       deleteWorkspaceByIdController,
        getAllWorkspacesUserIsMemberController,
-        getWorkspaceAnalyticsController, getWorkspaceByIdController, getWorkspaceMembersController, updateWorkspaceByIdController } from "../controllers/workspace.controller";
+        getWorkspaceAnalyticsController, getWorkspaceByIdController, getWorkspaceMembersController, updateWorkspaceByIdController, getWorkspaceNotificationsController, markAllNotificationsAsReadController } from "../controllers/workspace.controller";
 
 
 const workspaceRoutes = Router(); 
@@ -20,6 +20,8 @@ workspaceRoutes.get("/all", getAllWorkspacesUserIsMemberController);
 
 workspaceRoutes.get("/members/:id", getWorkspaceMembersController); 
 workspaceRoutes.get("/analytics/:id", getWorkspaceAnalyticsController); 
+workspaceRoutes.get('/:id/notifications', getWorkspaceNotificationsController);
+workspaceRoutes.patch('/:id/notifications/mark-all-read', markAllNotificationsAsReadController);
 
 workspaceRoutes.get("/:id", getWorkspaceByIdController); 
 

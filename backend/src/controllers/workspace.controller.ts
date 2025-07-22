@@ -7,6 +7,10 @@ import { getMemberRoleInWorkspace } from "../services/member.service";
 import { roleGuard } from "../utils/roleGuard";
 import { Permissions } from "../enums/role.enum";
 import { json } from "stream/consumers";
+import Notification from "../models/notification.model";
+import { io } from "../index";
+import { WorkspaceDocument } from "../models/workspace.model";
+import mongoose from 'mongoose';
 
 
 export const createWorkspaceController = asyncHandler(
@@ -15,7 +19,17 @@ export const createWorkspaceController = asyncHandler(
 
         const userId = req.user?._id; 
         const {workspace} = await createWorkspaceService(userId, body); 
-        
+        const workspaceId = (workspace as WorkspaceDocument)._id?.toString();
+        if (!workspaceId) throw new Error("Workspace ID is missing");
+        console.log("Creating notification (workspace)", { userId, workspaceId, type: 'workspace', message: `Workspace '${(workspace as WorkspaceDocument).name}' created` });
+        // Create notification
+        const notification = await Notification.create({
+          userId,
+          workspaceId,
+          type: 'workspace',
+          message: `Workspace '${workspace.name}' created`,
+        });
+        io.to(workspaceId).emit('notification', notification);
          return res.status(HTTPSTATUS.CREATED).json({
             message:"Workspace created successfully", 
             workspace, 
@@ -132,6 +146,16 @@ export const updateWorkspaceByIdController = asyncHandler (
       name, 
       description,
     ); 
+    // Create notification
+    if (!workspaceId) throw new Error("Workspace ID is missing");
+    console.log("Creating notification (workspace)", { userId, workspaceId, type: 'workspace', message: `Workspace '${(workspace as WorkspaceDocument).name}' updated` });
+    const notification = await Notification.create({
+      userId,
+      workspaceId,
+      type: 'workspace',
+      message: `Workspace '${(workspace as WorkspaceDocument).name}' updated`,
+    });
+    io.to(workspaceId).emit('notification', notification);
 
     return res.status(HTTPSTATUS.OK).json({
       message:"Workspace updated successfully", 
@@ -153,10 +177,52 @@ export const deleteWorkspaceByIdController = asyncHandler(
       workspaceId, 
       userId
     ); 
+    // Create notification
+    if (!workspaceId) throw new Error("Workspace ID is missing");
+    console.log("Creating notification (workspace)", { userId, workspaceId, type: 'workspace', message: `Workspace deleted` });
+    const notification = await Notification.create({
+      userId,
+      workspaceId: workspaceId.toString(),
+      type: 'workspace',
+      message: `Workspace deleted`,
+    });
+    io.to(workspaceId).emit('notification', notification);
 
     return res.status(HTTPSTATUS.OK).json({
       message:"Workspace deleted successfully", 
       currentWorkspace, 
     });
+  }
+); 
+
+export const getWorkspaceNotificationsController = asyncHandler(
+  async (req: Request, res: Response) => {
+    const workspaceId = req.params.id;
+    if (!mongoose.Types.ObjectId.isValid(workspaceId)) {
+      return res.status(400).json({ message: 'Invalid workspaceId' });
+    }
+    try {
+      const notifications = await Notification.find({ workspaceId })
+        .sort({ createdAt: -1 })
+        .populate('userId', 'name profilePicture');
+      return res.status(200).json({
+        message: "Notifications fetched successfully",
+        notifications,
+      });
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      return res.status(500).json({ message: 'Failed to fetch notifications', error: errorMessage });
+    }
+  }
+); 
+
+export const markAllNotificationsAsReadController = asyncHandler(
+  async (req: Request, res: Response) => {
+    const workspaceId = req.params.id;
+    if (!mongoose.Types.ObjectId.isValid(workspaceId)) {
+      return res.status(400).json({ message: 'Invalid workspaceId' });
+    }
+    await Notification.updateMany({ workspaceId, read: false }, { $set: { read: true } });
+    return res.status(200).json({ message: 'All notifications marked as read' });
   }
 ); 

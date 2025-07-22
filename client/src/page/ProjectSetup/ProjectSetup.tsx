@@ -1,6 +1,7 @@
 
 
 // ProjectSetup page guides the user through creating a workspace, project, and tasks with a multi-step form and live preview.
+// NOTE: To edit an existing workspace, navigate to `/ProjectSetup/:workspaceId`. For a new workspace, use `/ProjectSetup`.
 import React, { useState, useEffect } from "react";
 import "./ProjectSetup.css";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -62,17 +63,6 @@ const ProjectSetup: React.FC = () => {
     }
   }, [workspace]);
 
-  const { mutate: updateWorkspace, isPending: isUpdatingWorkspace } = useMutation({
-    mutationFn: ({ workspaceId, name, description }: { workspaceId: string; name: string; description: string }) =>
-      editWorkspaceMutationFn({ workspaceId, data: { name, description } }),
-    onSuccess: () => {
-      toast({ title: "Workspace updated!" });
-    },
-    onError: (error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
-    }
-  });
-
   // If there are already projects, redirect to dashboard
   useEffect(() => {
     if (hasProjects && workspaceId) {
@@ -130,13 +120,6 @@ const ProjectSetup: React.FC = () => {
                   placeholder="Workspace Description"
                   className="input-style"
                 />
-                <button
-                  className="button-primary"
-                  onClick={() => updateWorkspace({ workspaceId, name: workspaceName, description: workspaceDescription })}
-                  disabled={isUpdatingWorkspace}
-                >
-                  {isUpdatingWorkspace ? "Saving..." : "Save Workspace"}
-                </button>
                 <button
                   className="button-primary"
                   onClick={() => setStep(step + 1)}
@@ -248,15 +231,26 @@ const ProjectSetup: React.FC = () => {
                   className="button-primary"
                   onClick={async () => {
                     try {
-                      // 1. Create Workspace
-                      const workspaceRes = await createWorkspace({
-                        name: workspaceName,
-                        description: workspaceDescription,
-                      });
-                      const workspaceId = workspaceRes.workspace._id;
+                      let finalWorkspaceId = workspaceId;
+                      // 1. Update or Create Workspace
+                      if (workspaceId) {
+                        await editWorkspaceMutationFn({
+                          workspaceId,
+                          data: {
+                            name: workspaceName,
+                            description: workspaceDescription,
+                          },
+                        });
+                      } else {
+                        const workspaceRes = await createWorkspace({
+                          name: workspaceName,
+                          description: workspaceDescription,
+                        });
+                        finalWorkspaceId = workspaceRes.workspace._id;
+                      }
                       // 2. Create Project
                       const projectRes = await createProject({
-                        workspaceId,
+                        workspaceId: finalWorkspaceId,
                         data: {
                           emoji: "📁", // or let user pick later
                           name: projectName,
@@ -268,7 +262,7 @@ const ProjectSetup: React.FC = () => {
                       const filteredTasks = tasks.filter((task) => task.trim());
                       for (const taskTitle of filteredTasks) {
                         await createTask({
-                          workspaceId,
+                          workspaceId: finalWorkspaceId,
                           projectId,
                           data: {
                             title: taskTitle,
@@ -288,7 +282,7 @@ const ProjectSetup: React.FC = () => {
                         variant: "success",
                       });
                       // Navigate to the new project page
-                      navigate(`/workspace/${workspaceId}/project/${projectId}`);
+                      navigate(`/workspace/${finalWorkspaceId}/project/${projectId}`);
                     } catch (error: any) {
                       // Show error toast on failure
                       toast({

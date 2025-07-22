@@ -19,7 +19,8 @@ import workspaceRoutes from "./routes/workspace.route";
 import memberRoutes from "./routes/member.route";
 import projectRoutes from "./routes/project.route";
 import taskRoutes from "./routes/task.route";
-
+import http from "http";
+import { Server as SocketIOServer } from "socket.io";
 
 
 const app= express(); 
@@ -72,8 +73,28 @@ app.use(`${BASE_PATH}/task`, isAuthenticated, taskRoutes);
 
 app.use(errorHandler); 
 
+const server = http.createServer(app);
+export const io = new SocketIOServer(server, {
+  cors: {
+    origin: config.FRONTEND_ORIGIN,
+    credentials: true,
+  },
+});
 
-app.listen(config.PORT,async()=> {
+io.on("connection", (socket) => {
+  socket.on("join", ({ workspaceId }) => {
+    if (workspaceId) {
+      socket.join(workspaceId.toString());
+    }
+  });
+  socket.on("leave", ({ workspaceId }) => {
+    if (workspaceId) {
+      socket.leave(workspaceId.toString());
+    }
+  });
+});
+
+server.listen(config.PORT,async()=> {
     console.log(`Server listening on port ${config.PORT} in ${config.NODE_ENV}`);
     await connectDatabase() ; 
 });

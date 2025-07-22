@@ -8,6 +8,8 @@ import { Permissions } from "../enums/role.enum";
 import { createTaskSchema, taskIdSchema, updateTaskSchema } from "../validation/task.validation";
 import { getMemberRoleInWorkspace } from "../services/member.service";
 import { createTaskService, deleteTaskService, getAllTasksService, getTaskByIdService, updateTaskService } from "../services/task.service";
+import Notification from "../models/notification.model";
+import { io } from "../index";
 
 
 export const createTaskController = asyncHandler(
@@ -27,6 +29,14 @@ const userId = req.user?._id;
       userId,
       body
     );
+    // Create notification
+    const notification = await Notification.create({
+      userId,
+      workspaceId,
+      type: 'task',
+      message: `Task '${task.title}' created`,
+    });
+    io.to(workspaceId.toString()).emit('notification', notification);
 
     return res.status(HTTPSTATUS.OK).json({
       message: "Task created successfully",
@@ -55,6 +65,14 @@ export const updateTaskController = asyncHandler(
       taskId,
       body
     );
+    // Create notification
+    const notification = await Notification.create({
+      userId,
+      workspaceId,
+      type: 'task',
+      message: `Task '${updatedTask.title}' updated`,
+    });
+    io.to(workspaceId.toString()).emit('notification', notification);
 
     return res.status(HTTPSTATUS.OK).json({
       message: "Task updated successfully",
@@ -130,6 +148,14 @@ export const deleteTaskController = asyncHandler(
     roleGuard(role, [Permissions.DELETE_TASK]);
 
     await deleteTaskService(workspaceId, taskId);
+    // Create notification
+    const notification = await Notification.create({
+      userId,
+      workspaceId,
+      type: 'task',
+      message: `Task deleted`,
+    });
+    io.to(workspaceId.toString()).emit('notification', notification);
 
     return res.status(HTTPSTATUS.OK).json({
       message: "Task deleted successfully",

@@ -5,6 +5,8 @@ import Asidebar from "@/components/asidebar/asidebar";
 import Header from "@/components/header";
 import CreateWorkspaceDialog from "@/components/workspace/create-workspace-dialog";
 import CreateProjectDialog from "@/components/workspace/project/create-project-dialog";
+import { Toaster } from "@/components/ui/toaster";
+import NotificationListener from "@/components/ui/notification-listener";
 
 const AppLayout = () => {
   return (
@@ -15,12 +17,14 @@ const AppLayout = () => {
           <div className="w-full">
             <>
               <Header />
+              <NotificationListener />
               <div className="px-3 lg:px-20 py-3">
                 <Outlet />
               </div>
             </>
             <CreateWorkspaceDialog />
             <CreateProjectDialog />
+            <Toaster />
           </div>
         </SidebarInset>
       </SidebarProvider>
