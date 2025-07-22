@@ -14,13 +14,9 @@ const AuthRoute = () => {
 
   if(!user) return  <Outlet />; 
 
-  // If user has no workspace, redirect to ProjectSetup
-  if (!user.currentWorkspace?._id) {
-    return <Navigate to="/ProjectSetup" replace />;
-  }
-
-  // Otherwise, go to dashboard
-  return <Navigate to= {`/workspace/${user.currentWorkspace._id}`} replace/> ;
+  // Remove any redirect to ProjectSetup for users with no workspace
+  // Instead, always redirect to the dashboard or workspace
+  return <Navigate to="/workspace" replace />;
 };
 
 export default AuthRoute;

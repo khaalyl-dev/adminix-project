@@ -1,4 +1,5 @@
 import { Plus } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 import { Button } from "@/components/ui/button";
 import useCreateProjectDialog from "@/hooks/use-create-project-dialog";
@@ -7,8 +8,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import RecentProjects from "@/components/workspace/project/recent-projects";
 import RecentTasks from "@/components/workspace/task/recent-tasks";
 import RecentMembers from "@/components/workspace/member/recent-members";
+import useGetProjectsInWorkspaceQuery from "@/hooks/api/use-get-projects";
+import useWorkspaceId from "@/hooks/use-workspace-id";
 const WorkspaceDashboard = () => {
   const { onOpen } = useCreateProjectDialog();
+  const navigate = useNavigate();
+  const workspaceId = useWorkspaceId();
+  const { data: projectsData, isLoading } = useGetProjectsInWorkspaceQuery({ workspaceId });
+  const hasProjects = !!(projectsData && projectsData.projects && projectsData.projects.length > 0);
   return (
     <main className="flex flex-1 flex-col py-4 md:pt-3">
       <div className="flex items-center justify-between space-y-2 mb-6">
@@ -50,6 +57,15 @@ const WorkspaceDashboard = () => {
           </TabsContent>
         </Tabs>
       </div>
+      {!hasProjects && (
+        <button
+          className="button-primary"
+          style={{ margin: "16px 0" }}
+          onClick={() => navigate("/ProjectSetup")}
+        >
+          Launch Setup Wizard
+        </button>
+      )}
     </main>
   );
 };

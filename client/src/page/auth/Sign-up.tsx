@@ -44,8 +44,8 @@ const SignUp = () => {
     if (isPending) return; // Prevent multiple submissions
     mutate(values, {
       onSuccess: () => {
-        // On successful registration, redirect to project setup page
-        navigate("/ProjectSetup");
+        // On successful registration, redirect to dashboard or workspace
+        navigate("/workspace");
       },
       onError: (error) => {
         // Show error toast on registration failure
