@@ -10,6 +10,7 @@ import { getMemberRoleInWorkspace } from "../services/member.service";
 import { createTaskService, deleteTaskService, getAllTasksService, getTaskByIdService, updateTaskService } from "../services/task.service";
 import Notification from "../models/notification.model";
 import { io } from "../index";
+import Comment from '../models/comment.model';
 
 
 export const createTaskController = asyncHandler(
@@ -161,5 +162,67 @@ export const deleteTaskController = asyncHandler(
       message: "Task deleted successfully",
     });
 
+  }
+); 
+
+export const getTaskCommentsController = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { id: taskId } = req.params;
+    const comments = await Comment.find({ taskId })
+      .sort({ createdAt: 1 })
+      .populate('userId', 'name profilePicture');
+    res.status(200).json({ comments });
+  }
+);
+
+export const postTaskCommentController = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { id: taskId } = req.params;
+    const userId = req.user?._id;
+    const { message } = req.body;
+    if (!message || !message.trim()) {
+      return res.status(400).json({ message: 'Message is required' });
+    }
+    const comment = await Comment.create({
+      taskId,
+      userId,
+      message,
+    });
+    await comment.populate('userId', 'name profilePicture');
+    res.status(201).json({ comment });
+  }
+); 
+
+export const editTaskCommentController = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { id: taskId, commentId } = req.params;
+    const userId = req.user?._id;
+    const { message } = req.body;
+    if (!message || !message.trim()) {
+      return res.status(400).json({ message: 'Message is required' });
+    }
+    const comment = await Comment.findOne({ _id: commentId, taskId });
+    if (!comment) return res.status(404).json({ message: 'Comment not found' });
+    if (comment.userId.toString() !== userId.toString()) {
+      return res.status(403).json({ message: 'You can only edit your own comments' });
+    }
+    comment.message = message;
+    await comment.save();
+    await comment.populate('userId', 'name profilePicture');
+    res.status(200).json({ comment });
+  }
+);
+
+export const deleteTaskCommentController = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { id: taskId, commentId } = req.params;
+    const userId = req.user?._id;
+    const comment = await Comment.findOne({ _id: commentId, taskId });
+    if (!comment) return res.status(404).json({ message: 'Comment not found' });
+    if (comment.userId.toString() !== userId.toString()) {
+      return res.status(403).json({ message: 'You can only delete your own comments' });
+    }
+    await comment.deleteOne();
+    res.status(204).send();
   }
 ); 

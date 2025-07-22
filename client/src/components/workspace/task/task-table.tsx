@@ -16,6 +16,7 @@ import useGetProjectsInWorkspaceQuery from "@/hooks/api/use-get-projects";
 import useGetWorkspaceMembers from "@/hooks/api/use-get-workspace-members";
 import { getAvatarColor, getAvatarFallbackText } from "@/lib/helper";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import TaskViewDialog from "./task-view-dialog";
 
 type Filters = ReturnType<typeof useTaskTableFilter>[0];
 type SetFilters = ReturnType<typeof useTaskTableFilter>[1];
@@ -64,6 +65,10 @@ const TaskTable = () => {
   const tasks: TaskType[] = data?.tasks || [];
   const totalCount = data?.pagination.totalCount || 0;
 
+  // Dialog state
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<TaskType | null>(null);
+
   const handlePageChange = (page: number) => {
     setPageNumber(page);
   };
@@ -71,6 +76,12 @@ const TaskTable = () => {
   // Handle page size changes
   const handlePageSizeChange = (size: number) => {
     setPageSize(size);
+  };
+
+  // Handle row click
+  const handleRowClick = (task: TaskType) => {
+    setSelectedTask(task);
+    setDialogOpen(true);
   };
 
   return (
@@ -94,7 +105,11 @@ const TaskTable = () => {
             setFilters={setFilters}
           />
         }
+        onRowClick={handleRowClick}
       />
+      {selectedTask && (
+        <TaskViewDialog open={dialogOpen} onOpenChange={setDialogOpen} task={selectedTask} />
+      )}
     </div>
   );
 };
