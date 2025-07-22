@@ -8,11 +8,20 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from "../utils/app.error";
+import UserModel from "../models/user.model";
 
 export const getMemberRoleInWorkspace = async (
   userId: string,
   workspaceId: string
 ) => {
+  // If the user is SUPER_ADMIN, allow access to any workspace (view-only)
+  const user = await UserModel.findById(userId);
+  if (user && user.role === Roles.SUPER_ADMIN) {
+    // SUPER_ADMIN can view all workspaces, even if not a member
+    return { role: Roles.SUPER_ADMIN };
+  }
+
+  // Existing logic for members
   const workspace = await WorkspaceModel.findById(workspaceId);
   if (!workspace) {
     throw new NotFoundException("Workspace not found");

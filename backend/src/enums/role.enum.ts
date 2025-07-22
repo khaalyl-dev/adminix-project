@@ -4,6 +4,7 @@ export const Roles = {
     OWNER :"OWNER",
     ADMIN :"ADMIN",
     MEMBER:"MEMBER",
+    SUPER_ADMIN:"SUPER_ADMIN",
 }as const; 
 
 export type RoleType = keyof typeof Roles;

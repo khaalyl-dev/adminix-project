@@ -1,5 +1,6 @@
 import mongoose, {Document, Schema} from "mongoose"; 
 import { compareValue, hashValue } from "../utils/bcrypt";
+import { RoleType, Roles } from "../enums/role.enum";
 
 export interface UserDocument extends Document {
     name: string;
@@ -11,6 +12,7 @@ export interface UserDocument extends Document {
     createdAt: Date; 
     updatedAt:Date; 
     currentWorkspace: mongoose.Types.ObjectId | null; 
+    role: RoleType;
     comparePassword (value:string): Promise<boolean>; 
     omitPassword():Omit<UserDocument,"password">; 
 }
@@ -39,6 +41,12 @@ ref:"Workspace",
 },
 isActive: {type:Boolean, default:true},
 lastLogin: {type:Date, default: null},
+role: {
+    type: String,
+    enum: Object.values(Roles),
+    default: Roles.MEMBER,
+    required: true,
+},
 },
  {
     timestamps:true,

@@ -26,6 +26,7 @@ export const loginOrCreateAccountService = async(data: {
         console.log("Start Session ...");
         let user = await UserModel.findOne({email}).session(session)
 
+        let isNewUser = false;
         if(!user) {
             //create new user if doesn't exist
             user = new UserModel({
@@ -41,22 +42,46 @@ export const loginOrCreateAccountService = async(data: {
                 providerId:providerId, 
             });
             await account.save({session});
-
-            // Do NOT create workspace, member, or set currentWorkspace here
+            isNewUser = true;
         }
-        await session.commitTransaction(); 
-        session.endSession(); 
-        console.log("End Session ...");
 
+        // If the user is new and has no currentWorkspace, create a default workspace
+        if (!user.currentWorkspace) {
+            const ownerRole = await RoleModel.findOne({ name: Roles.OWNER });
+            if (!ownerRole) {
+                throw new Error("Owner role not found");
+            }
+            const workspace = new WorkspaceModel({
+                name: `${user.name || "My Workspace"}`,
+                description: "Default workspace",
+                owner: user._id,
+            });
+            await workspace.save({ session });
+
+            const member = new MemberModel({
+                userId: user._id,
+                workspaceId: workspace._id,
+                role: ownerRole._id,
+                joinedAt: new Date(),
+            });
+            await member.save({ session });
+
+            user.currentWorkspace = workspace._id as mongoose.Types.ObjectId;
+            await user.save({ session });
+        }
+
+        await session.commitTransaction();
+        session.endSession();
+        console.log("End Session ...");
 
         return {user};
     } catch (error) {
         await session.abortTransaction();
         session.endSession();
         throw error;
-        }finally {
-            session.endSession();
-        }
+    } finally {
+        session.endSession();
+    }
 };
 
 export const registerUserService = async(body:{

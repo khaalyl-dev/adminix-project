@@ -60,6 +60,11 @@ export const createWorkspaceService = async (
 }; 
 /** GET WORKSPACE USER IS A MEMBER */
 export const getAllWorkspacesUserIsMemberService = async(userId: string ) => {
+     const user = await UserModel.findById(userId);
+     if (user && user.role === Roles.SUPER_ADMIN) {
+         const workspaces = await WorkspaceModel.find();
+         return { workspaces };
+     }
      const memberships = await MemberModel.find({userId})
      .populate("workspaceId")
      .select("-password")

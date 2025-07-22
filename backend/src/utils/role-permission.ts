@@ -38,4 +38,7 @@ import {
       Permissions.CREATE_TASK,
       Permissions.EDIT_TASK,
     ],
+    SUPER_ADMIN: [
+      Permissions.VIEW_ONLY,
+    ],
   };
