@@ -27,10 +27,18 @@ const WorkspaceDashboard = () => {
             Here&apos;s an overview for this workspace!
           </p>
         </div>
-        <Button onClick={onOpen}>
-          <Plus />
-          New Project
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={onOpen}>
+            <Plus color="white" />
+            New Project
+          </Button>
+          {!hasProjects && (
+            <Button onClick={() => navigate(`/ProjectSetup/${workspaceId}`)}>
+              <Plus color="white" />
+              Launch Setup Wizard
+            </Button>
+          )}
+        </div>
       </div>
       <WorkspaceAnalytics />
       <div className="mt-4">
@@ -57,15 +65,7 @@ const WorkspaceDashboard = () => {
           </TabsContent>
         </Tabs>
       </div>
-      {!hasProjects && (
-        <button
-          className="button-primary"
-          style={{ margin: "16px 0" }}
-          onClick={() => navigate("/ProjectSetup")}
-        >
-          Launch Setup Wizard
-        </button>
-      )}
+      
     </main>
   );
 };
