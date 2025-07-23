@@ -11,7 +11,8 @@ import { createProjectController,
     unpinProjectActivityController,
     getProjectFilesController,
     uploadProjectFileController,
-    upload } from "../controllers/project.controller";
+    upload,
+    downloadProjectFileController } from "../controllers/project.controller";
 import path from "path";
 import fs from "fs";
 
@@ -43,17 +44,8 @@ projectRoutes.patch('/activities/:activityId/unpin', unpinProjectActivityControl
 projectRoutes.get('/:id/files', getProjectFilesController);
 projectRoutes.post('/:id/files', upload.single('file'), uploadProjectFileController);
 
-// Download endpoint for project files
-projectRoutes.get('/files/download/:filename', (req, res) => {
-  const filename = req.params.filename;
-  const filePath = path.join(__dirname, '../../uploads', filename);
-
-  if (!fs.existsSync(filePath)) {
-    return res.status(404).json({ message: 'File not found' });
-  }
-
-  res.download(filePath, filename);
-});
+// Download endpoint for project files (now by fileId)
+projectRoutes.get('/files/download/:fileId', downloadProjectFileController);
 
 projectRoutes.get(
     "/:id/workspace/:workspaceId",

@@ -15,28 +15,17 @@ import multer from 'multer';
 import path from 'path';
 import { Request as ExpressRequest } from 'express';
 import { FileFilterCallback } from 'multer';
+import mongoose from 'mongoose';
+import { GridFSBucket } from 'mongodb';
+import { config } from '../config/app.config';
+import { ObjectId } from 'mongodb';
+import stream from 'stream';
 // Use Express.Multer.File for file type
 
 
-// Multer setup
-const storage = multer.diskStorage({
-  destination: function (
-    req: ExpressRequest,
-    file: Express.Multer.File,
-    cb: (error: Error | null, destination: string) => void
-  ) {
-    cb(null, path.join(__dirname, '../../uploads'));
-  },
-  filename: function (
-    req: ExpressRequest,
-    file: Express.Multer.File,
-    cb: (error: Error | null, filename: string) => void
-  ) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, uniqueSuffix + '-' + file.originalname);
-  }
-});
-export const upload = multer({ storage });
+// Use plain multer with memory storage
+const upload = multer({ storage: multer.memoryStorage() });
+export { upload };
 
 
 export const createProjectController = asyncHandler(
@@ -288,11 +277,52 @@ export const uploadProjectFileController = asyncHandler(
   async (req: Request, res: Response) => {
     const { id: projectId } = req.params;
     const userId = req.user?._id;
-    const file = req.file as Express.Multer.File;
+    const file = req.file;
     const name = req.body.name || (file ? file.originalname : undefined);
     if (!file || !name) return res.status(400).json({ message: 'File and name are required' });
-    const url = `/uploads/${file.filename}`;
-    const savedFile = await File.create({ projectId, userId, name, url });
-    res.status(201).json({ file: savedFile });
+
+    // Stream file buffer to GridFS
+    const db = mongoose.connection.db;
+    if (!db) return res.status(500).json({ message: 'Database not initialized' });
+    const bucket = new GridFSBucket(db, { bucketName: 'uploads' });
+    const uploadStream = bucket.openUploadStream(file.originalname, {
+      contentType: file.mimetype,
+      metadata: { projectId }
+    });
+    uploadStream.end(file.buffer);
+    uploadStream.on('error', (err) => {
+      return res.status(500).json({ message: 'Error uploading file', error: err.message });
+    });
+    uploadStream.on('finish', async () => {
+      const savedFile = await File.create({
+        projectId,
+        userId,
+        name,
+        fileId: uploadStream.id, // use the id from the stream
+      });
+      res.status(201).json({ file: savedFile });
+    });
+  }
+);
+
+export const downloadProjectFileController = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { fileId } = req.params;
+    const db = mongoose.connection.db;
+    if (!db) return res.status(500).json({ message: 'Database not initialized' });
+    const bucket = new mongoose.mongo.GridFSBucket(db, { bucketName: 'uploads' });
+    try {
+      const _id = new ObjectId(fileId);
+      // Find the file metadata to get the original name
+      const fileDoc = await File.findOne({ fileId: _id });
+      const filename = fileDoc?.name || 'downloaded-file';
+      const downloadStream = bucket.openDownloadStream(_id);
+      downloadStream.on('error', () => res.status(404).json({ message: 'File not found' }));
+      res.set('Content-Type', 'application/octet-stream');
+      res.set('Content-Disposition', `attachment; filename="${filename}"`);
+      downloadStream.pipe(res);
+    } catch (err) {
+      res.status(400).json({ message: 'Invalid file ID' });
+    }
   }
 );

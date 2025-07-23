@@ -31,9 +31,6 @@ app.use(express.json());
 
 app.use(express.urlencoded({extended:true})); 
 
-// Serve uploads folder statically
-app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
-
 app.use(
     session({
         name:"session", 
@@ -100,6 +97,7 @@ io.on("connection", (socket) => {
 
 server.listen(config.PORT,async()=> {
     console.log(`Server listening on port ${config.PORT} in ${config.NODE_ENV}`);
+    console.log('Loaded MONGO_URL:', config.MONGO_URL);
     await connectDatabase() ; 
 });
 

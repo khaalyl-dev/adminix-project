@@ -376,7 +376,7 @@ function ProjectSidebar({ project, members, files, pinned, tasks, onFileUpload }
                 {/* <span className="text-gray-400 ml-2">{formatFileSize(file.size)}</span>
                 <span className="text-gray-400 ml-2">{formatDate(file.uploadedAt)}</span> */}
                 <a
-                  href={`/api/project/files/download/${encodeURIComponent(file.url.split('/').pop() || file.name || '')}`}
+                  href={`/api/project/files/download/${encodeURIComponent(file.fileId || file.name || '')}`}
                   download={file.name || ''}
                   className="text-blue-600 hover:text-blue-800"
                   title="Download"
@@ -437,12 +437,18 @@ const ProjectDetails = () => {
   const handleFileUpload = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const form = e.currentTarget;
-    const name = (form.elements.namedItem('name') as HTMLInputElement).value;
+    const nameInput = form.elements.namedItem('name') as HTMLInputElement;
     const fileInput = form.elements.namedItem('file') as HTMLInputElement;
-    if (!name || !fileInput.files || !fileInput.files[0]) return;
+    if (!nameInput.value || !fileInput.files || !fileInput.files[0]) return;
+    let name = nameInput.value;
+    const file = fileInput.files[0];
+    // Ensure the name includes the extension
+    if (!name.endsWith('.' + file.name.split('.').pop())) {
+      name += '.' + file.name.split('.').pop();
+    }
     const formData = new FormData();
     formData.append('name', name);
-    formData.append('file', fileInput.files[0]);
+    formData.append('file', file);
     await axios.post(`/api/project/${projectId}/files`, formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });

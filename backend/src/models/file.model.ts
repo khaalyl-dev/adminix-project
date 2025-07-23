@@ -4,7 +4,8 @@ export interface FileDocument extends Document {
   projectId: mongoose.Types.ObjectId;
   userId: mongoose.Types.ObjectId;
   name: string;
-  url: string;
+  fileId: mongoose.Types.ObjectId;
+  url?: string;
   uploadedAt: Date;
 }
 
@@ -12,7 +13,8 @@ const FileSchema = new Schema<FileDocument>({
   projectId: { type: Schema.Types.ObjectId, ref: 'Project', required: true },
   userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
   name: { type: String, required: true },
-  url: { type: String, required: true },
+  fileId: { type: Schema.Types.ObjectId, required: true },
+  url: { type: String }, // optional, for backward compatibility
   uploadedAt: { type: Date, default: Date.now },
 });
 
