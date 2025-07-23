@@ -97,7 +97,6 @@ io.on("connection", (socket) => {
 
 server.listen(config.PORT,async()=> {
     console.log(`Server listening on port ${config.PORT} in ${config.NODE_ENV}`);
-    console.log('Loaded MONGO_URL:', config.MONGO_URL);
     await connectDatabase() ; 
 });
 

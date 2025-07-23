@@ -4,9 +4,9 @@ import {config} from "./app.config";
 const connectDatabase = async () => {
     try{
         await mongoose.connect(config.MONGO_URL);
-        console.log("oumourek mrygla");
+        console.log("Jaweek behy el database ala 3ajla");
     } catch (error) {
-        console.log("error o raja3 rou7ek ");
+        console.log("bro 7yetek 3adheb");
         process.exit(1);
     }
 };

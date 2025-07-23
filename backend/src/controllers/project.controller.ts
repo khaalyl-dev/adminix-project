@@ -300,6 +300,30 @@ export const uploadProjectFileController = asyncHandler(
         name,
         fileId: uploadStream.id, // use the id from the stream
       });
+      // Fetch project and user to get workspaceId, project name, and uploader name
+      const projectModel = await (await import('../models/project.model')).default;
+      const userModel = await (await import('../models/user.model')).default;
+      const project = await projectModel.findById(projectId);
+      const user = await userModel.findById(userId);
+      const workspaceId = project?.workspace;
+      // Create notification
+      if (workspaceId) {
+        const notification = await Notification.create({
+          userId,
+          workspaceId,
+          type: 'project',
+          message: `File '${name}' uploaded to project ${project?.name || ''} by ${user?.name || 'someone'}`,
+        });
+        io.to(workspaceId.toString()).emit('notification', notification);
+      }
+      // Create activity log
+      await Activity.create({
+        projectId,
+        userId,
+        type: 'file_upload',
+        message: `File uploaded: ${name}`,
+        meta: { fileId: uploadStream.id, name },
+      });
       res.status(201).json({ file: savedFile });
     });
   }
@@ -323,6 +347,25 @@ export const downloadProjectFileController = asyncHandler(
       downloadStream.pipe(res);
     } catch (err) {
       res.status(400).json({ message: 'Invalid file ID' });
+    }
+  }
+);
+
+export const deleteProjectFileController = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { fileId } = req.params;
+    const db = mongoose.connection.db;
+    if (!db) return res.status(500).json({ message: 'Database not initialized' });
+    const bucket = new mongoose.mongo.GridFSBucket(db, { bucketName: 'uploads' });
+    try {
+      const _id = new ObjectId(fileId);
+      // Delete from GridFS
+      await bucket.delete(_id);
+      // Delete from File model
+      await File.findOneAndDelete({ fileId: _id });
+      res.status(200).json({ message: 'File deleted successfully' });
+    } catch (err) {
+      res.status(400).json({ message: 'Failed to delete file', error: err instanceof Error ? err.message : err });
     }
   }
 );

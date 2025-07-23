@@ -12,7 +12,8 @@ import { createProjectController,
     getProjectFilesController,
     uploadProjectFileController,
     upload,
-    downloadProjectFileController } from "../controllers/project.controller";
+    downloadProjectFileController,
+    deleteProjectFileController } from "../controllers/project.controller";
 import path from "path";
 import fs from "fs";
 
@@ -46,6 +47,7 @@ projectRoutes.post('/:id/files', upload.single('file'), uploadProjectFileControl
 
 // Download endpoint for project files (now by fileId)
 projectRoutes.get('/files/download/:fileId', downloadProjectFileController);
+projectRoutes.delete('/files/:fileId', deleteProjectFileController);
 
 projectRoutes.get(
     "/:id/workspace/:workspaceId",

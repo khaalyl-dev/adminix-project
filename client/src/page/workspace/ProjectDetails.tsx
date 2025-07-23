@@ -11,12 +11,17 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { formatDistanceToNow, format } from 'date-fns';
-import { MessageCircle, FileText, Calendar, Loader2, Paperclip, Link as LinkIcon, Star, Pin, PinOff } from 'lucide-react';
-import { useAuthContext } from '@/context/auth-provider';
+import {Loader2, Paperclip, Link as Star, Pin, PinOff } from 'lucide-react';
 import useWorkspaceId from '@/hooks/use-workspace-id';
-import { getAllTasksQueryFn, getProjectByIdQueryFn, getProjectFilesController, uploadProjectFileController } from '@/lib/api';
+import { getAllTasksQueryFn, getProjectByIdQueryFn } from '@/lib/api';
 import { useQuery } from '@tanstack/react-query';
 import useGetWorkspaceMembers from '@/hooks/api/use-get-workspace-members';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Toast, ToastProvider, ToastTitle, ToastDescription, ToastViewport } from '@/components/ui/toast';
+import { useRef } from 'react';
+import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion';
+import ScheduleMeeting from './ScheduleMeeting';
+import { Dialog, DialogTrigger, DialogContent, DialogTitle } from '@/components/ui/dialog';
 
 function getActivityIcon(type: string) {
   // Return a black dot for all activity types
@@ -36,7 +41,6 @@ function groupByDay(activities: any[]) {
 function ActivityLogTab({ onPinChange }: { onPinChange?: () => void }) {
   const { projectId } = useParams();
   const workspaceId = useWorkspaceId();
-  const { user } = useAuthContext();
   const [activities, setActivities] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -63,7 +67,7 @@ function ActivityLogTab({ onPinChange }: { onPinChange?: () => void }) {
     const value = e.target.value;
     setComment(value);
     const cursorPos = e.target.selectionStart;
-    const textUpToCursor = value.slice(0, cursorPos);
+    const textUpToCursor = value.slice(0, cursorPos ?? 0);
     const atMatch = /@([\w]*)$/.exec(textUpToCursor);
     const hashMatch = /#([\w]*)$/.exec(textUpToCursor);
     if (atMatch) {
@@ -99,7 +103,7 @@ function ActivityLogTab({ onPinChange }: { onPinChange?: () => void }) {
   const handleSelectMention = (item: any) => {
     const input = document.getElementById('activity-comment-input') as HTMLInputElement;
     if (!input) return;
-    const cursorPos = input.selectionStart;
+    const cursorPos = input.selectionStart ?? 0;
     let before, after;
     if (mentionDropdown.type === 'member') {
       before = comment.slice(0, cursorPos).replace(/@([\w]*)$/, `@${item.userId.name} `);
@@ -167,7 +171,9 @@ function ActivityLogTab({ onPinChange }: { onPinChange?: () => void }) {
 
   // Filtering and searching
   const filteredActivities = activities.filter((a: any) => {
-    if (filter !== 'all' && a.type !== filter) return false;
+    if (filter === 'comment' && !a.type.includes('comment')) return false;
+    if (filter === 'file' && a.type !== 'file_upload') return false;
+    if (filter !== 'all' && filter !== 'comment' && filter !== 'file' && a.type !== filter) return false;
     if (search && !a.message.toLowerCase().includes(search.toLowerCase())) return false;
     return true;
   });
@@ -177,7 +183,7 @@ function ActivityLogTab({ onPinChange }: { onPinChange?: () => void }) {
   console.log('Activities to render:', activities);
 
   return (
-    <div className="py-4 max-w-2xl mx-auto">
+    <div className="py-4 w-full">
       {/* Search and filter bar */}
       <div className="flex items-center gap-2 mb-4">
         <Input
@@ -248,6 +254,7 @@ function ActivityLogTab({ onPinChange }: { onPinChange?: () => void }) {
           <div className="text-center text-gray-400 py-8">No activity yet.</div>
         ) : (
           <div className="relative">
+            {/* Only render the vertical bar inside the activity log timeline */}
             <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-gray-200 rounded-full" style={{ zIndex: 0 }} />
             <div className="space-y-8 pl-10">
               {days.map(day => (
@@ -301,99 +308,219 @@ function highlightMentions(text: string, members: any[], tasks: any[]) {
   return result;
 }
 
-function ProjectSidebar({ project, members, files, pinned, tasks, onFileUpload }: any) {
+function FileUploadCard({ onUpload, uploading, progress, preview, error, success }: any) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
   return (
-    <aside className="w-full md:w-80 flex-shrink-0 md:pl-8 mt-8 md:mt-0">
-      {/* Project Overview */}
-      <div className="bg-white rounded-xl border border-gray-100 p-5 mb-6 shadow-sm">
-        <div className="flex items-center gap-2 mb-2">
-          <span className="text-2xl">{project?.emoji || '📊'}</span>
-          <span className="font-bold text-lg">{project?.name || 'Untitled Project'}</span>
-        </div>
-        <div className="text-gray-500 text-sm mb-2">{project?.description || 'No description.'}</div>
-        <div className="flex flex-wrap gap-2 text-xs text-gray-400 mb-2">
-          <span>Status: <span className="text-gray-700 font-medium">{project?.status || 'Active'}</span></span>
-          {project?.createdAt && <span>Created: {format(new Date(project.createdAt), 'PPP')}</span>}
-          {project?.updatedAt && <span>Updated: {format(new Date(project.updatedAt), 'PPP')}</span>}
-          {project?.dueDate && <span>Due: {format(new Date(project.dueDate), 'PPP')}</span>}
-        </div>
-        <div className="flex items-center gap-2 mt-2">
-          <span className="text-xs text-gray-400">Members:</span>
-          {project?.owner && (
-            <Avatar className="w-6 h-6">
-              <AvatarImage src={project.owner.profilePicture} alt={project.owner.name} />
-              <AvatarFallback>{project.owner.name?.[0]}</AvatarFallback>
-            </Avatar>
+    <Card className="mb-4">
+      <CardHeader>
+        <CardTitle>Upload a file</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div
+          className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-lg p-6 cursor-pointer hover:border-blue-400 transition-colors bg-gray-50"
+          onClick={() => fileInputRef.current?.click()}
+          onDrop={e => {
+            e.preventDefault();
+            if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+              fileInputRef.current!.files = e.dataTransfer.files;
+              onUpload(e.dataTransfer.files[0]);
+            }
+          }}
+          onDragOver={e => e.preventDefault()}
+        >
+          {preview ? (
+            <img src={preview} alt="Preview" className="w-20 h-20 object-cover rounded mb-2" />
+          ) : (
+            <Paperclip className="w-8 h-8 text-gray-400 mb-2" />
           )}
+          <span className="text-xs text-gray-500 mb-2">Drag & drop or click to select a file</span>
+          <Input
+            ref={fileInputRef}
+            type="file"
+            className="hidden"
+            onChange={e => {
+              if (e.target.files && e.target.files[0]) onUpload(e.target.files[0]);
+            }}
+          />
         </div>
-        <div className="flex items-center gap-1 mt-2 flex-wrap">
-          {members?.map((m: any) => (
-            <Avatar key={m._id} className="w-6 h-6 border-2 border-white -ml-2 first:ml-0">
-              <AvatarImage src={m.userId?.profilePicture} alt={m.userId?.name} />
-              <AvatarFallback>{m.userId?.name?.[0]}</AvatarFallback>
-            </Avatar>
-          ))}
-        </div>
-      </div>
-      {/* Pinned/Important Items */}
-      <div className="bg-white rounded-xl border border-gray-100 p-5 mb-6 shadow-sm">
-        <div className="flex items-center gap-2 mb-3 font-semibold text-sm">
-          <Star className="w-4 h-4 text-yellow-400" />
-          Pinned/Important
-        </div>
-        {pinned?.length ? (
-          <ul className="space-y-2">
-            {pinned.map((item: any) => (
-              <li key={item._id} className="flex items-center gap-2 text-xs text-gray-700">
-                <Pin className="w-4 h-4 text-yellow-400" />
-                <span dangerouslySetInnerHTML={{ __html: highlightMentions(item.message, members, tasks) }} />
-              </li>
-            ))}
-          </ul>
-        ) : <div className="text-xs text-gray-400">No pinned items.</div>}
-      </div>
-      {/* Files & Attachments */}
-      <div className="bg-white rounded-xl border border-gray-100 p-5 shadow-sm">
-        <div className="flex items-center gap-2 mb-3 font-semibold text-sm">
-          <Paperclip className="w-4 h-4 text-gray-400" />
-          Files & Attachments
-        </div>
-        <form className="flex flex-col gap-2 mb-3" onSubmit={onFileUpload} encType="multipart/form-data">
-          <label className="text-xs font-medium text-gray-700" htmlFor="file-upload">Upload a file</label>
-          <div className="flex gap-2 items-center">
-            <Input name="name" placeholder="File name" className="flex-1" required />
-            <Input id="file-upload" name="file" type="file" className="flex-1" required />
-          </div>
-          <Button size="sm" type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded shadow">Upload</Button>
-        </form>
-        {files?.length ? (
-          <ul className="space-y-2">
-            {files.map((file: any) => (
-              <li key={file._id} className="flex items-center gap-3 text-xs text-gray-700 border-b last:border-b-0 py-2">
-                <Paperclip className="w-4 h-4 text-gray-400" />
-                <span className="flex-1 truncate">{file.name}</span>
-                {/* Optional: Show file size and date */}
-                {/* <span className="text-gray-400 ml-2">{formatFileSize(file.size)}</span>
-                <span className="text-gray-400 ml-2">{formatDate(file.uploadedAt)}</span> */}
-                <a
-                  href={`/api/project/files/download/${encodeURIComponent(file.fileId || file.name || '')}`}
-                  download={file.name || ''}
-                  className="text-blue-600 hover:text-blue-800"
-                  title="Download"
-                >
-                  <svg className="w-4 h-4 inline" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5m0 0l5-5m-5 5V4" />
-                  </svg>
-                </a>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <div className="text-xs text-gray-400 flex flex-col items-center py-4">
-            <Paperclip className="w-8 h-8 mb-2 text-gray-200" />
-            No files uploaded yet.
+        {uploading && (
+          <div className="mt-2 w-full">
+            <div className="relative w-full h-2 bg-gray-200 rounded overflow-hidden">
+              <div
+                className="absolute left-0 top-0 h-2 bg-blue-500 transition-all"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+            <span className="text-xs text-gray-400">Uploading... {progress}%</span>
           </div>
         )}
+        {error && (
+          <Toast variant="destructive" className="mt-2">
+            <ToastTitle>Error</ToastTitle>
+            <ToastDescription>{error}</ToastDescription>
+          </Toast>
+        )}
+        {success && (
+          <Toast variant="success" className="mt-2">
+            <ToastTitle>Success</ToastTitle>
+            <ToastDescription>{success}</ToastDescription>
+          </Toast>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function ProjectSidebar({ project, members, files, pinned, tasks, onFileUpload }: any) {
+  const [uploading, setUploading] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [preview, setPreview] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ error?: string; success?: string }>({});
+  const [expanded, setExpanded] = useState(false);
+
+  const handleUpload = async (file: File) => {
+    setUploading(true);
+    setToast({});
+    setPreview(file.type.startsWith('image/') ? URL.createObjectURL(file) : null);
+    const formData = new FormData();
+    let name = file.name;
+    formData.append('name', name);
+    formData.append('file', file);
+    try {
+      await axios.post(`/api/project/${project._id}/files`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        onUploadProgress: (e) => {
+          setProgress(Math.round((e.loaded * 100) / (e.total || 1)));
+        },
+      });
+      setToast({ success: 'File uploaded successfully!' });
+      setTimeout(() => setToast({}), 2000);
+      setUploading(false);
+      setProgress(0);
+      setPreview(null);
+      onFileUpload && onFileUpload();
+    } catch (err: any) {
+      setToast({ error: err?.response?.data?.message || 'Upload failed' });
+      setUploading(false);
+      setProgress(0);
+    }
+  };
+
+  const handleDelete = async (fileId: string) => {
+    try {
+      await axios.delete(`/api/project/files/${fileId}`);
+      setToast({ success: 'File deleted successfully!' });
+      setTimeout(() => setToast({}), 2000);
+      onFileUpload && onFileUpload();
+    } catch (err: any) {
+      setToast({ error: err?.response?.data?.message || 'Delete failed' });
+    }
+  };
+
+  return (
+    <aside className="w-80 bg-white h-full flex flex-col">
+      <div className="flex-1 overflow-y-auto p-4">
+        {/* Project Overview */}
+        <div className="bg-white rounded-xl border border-gray-100 p-5 mb-6 shadow-sm">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-2xl">{project?.emoji || '📊'}</span>
+            <span className="font-bold text-lg">{project?.name || 'Untitled Project'}</span>
+          </div>
+          <div className="text-gray-500 text-sm mb-2">{project?.description || 'No description.'}</div>
+          <div className="flex flex-wrap gap-2 text-xs text-gray-400 mb-2">
+            <span>Status: <span className="text-gray-700 font-medium">{project?.status || 'Active'}</span></span>
+            {project?.createdAt && <span>Created: {format(new Date(project.createdAt), 'PPP')}</span>}
+            {project?.updatedAt && <span>Updated: {format(new Date(project.updatedAt), 'PPP')}</span>}
+            {project?.dueDate && <span>Due: {format(new Date(project.dueDate), 'PPP')}</span>}
+          </div>
+          <div className="flex items-center gap-2 mt-2">
+            <span className="text-xs text-gray-400">Members:</span>
+            {project?.owner && (
+              <Avatar className="w-6 h-6">
+                <AvatarImage src={project.owner.profilePicture} alt={project.owner.name} />
+                <AvatarFallback>{project.owner.name?.[0]}</AvatarFallback>
+              </Avatar>
+            )}
+          </div>
+          <div className="flex items-center gap-1 mt-2 flex-wrap">
+            {members?.map((m: any) => (
+              <Avatar key={m._id} className="w-6 h-6 border-2 border-white -ml-2 first:ml-0">
+                <AvatarImage src={m.userId?.profilePicture} alt={m.userId?.name} />
+                <AvatarFallback>{m.userId?.name?.[0]}</AvatarFallback>
+              </Avatar>
+            ))}
+          </div>
+        </div>
+        {/* Pinned/Important Items */}
+        <div className="bg-white rounded-xl border border-gray-100 p-5 mb-6 shadow-sm">
+          <div className="flex items-center gap-2 mb-3 font-semibold text-sm">
+            <Star className="w-4 h-4 text-yellow-400" />
+            Pinned/Important
+          </div>
+          {pinned?.length ? (
+            <ul className="space-y-2">
+              {pinned.map((item: any) => (
+                <li key={item._id} className="flex items-center gap-2 text-xs text-gray-700">
+                  <Pin className="w-4 h-4 text-yellow-400" />
+                  <span dangerouslySetInnerHTML={{ __html: highlightMentions(item.message, members, tasks) }} />
+                </li>
+              ))}
+            </ul>
+          ) : <div className="text-xs text-gray-400">No pinned items.</div>}
+        </div>
+        {/* File Upload UI moved here */}
+        <FileUploadCard
+          onUpload={handleUpload}
+          uploading={uploading}
+          progress={progress}
+          preview={preview}
+          error={toast.error}
+          success={toast.success}
+        />
+        {/* Files & Attachments in Card with rollup/accordion */}
+        <Card className="mb-4">
+          <Accordion type="single" collapsible defaultValue={expanded ? 'files' : undefined} onValueChange={v => setExpanded(!!v)}>
+            <AccordionItem value="files">
+              <AccordionTrigger>Files & Attachments ({files?.length || 0})</AccordionTrigger>
+              <AccordionContent>
+                {files?.length ? (
+                  <ul className="space-y-2">
+                    {files.map((file: any) => (
+                      <li key={file._id} className="flex items-center gap-3 text-xs text-gray-700 border-b last:border-b-0 py-2">
+                        <Paperclip className="w-4 h-4 text-gray-400" />
+                        <span className="flex-1 truncate">{file.name}</span>
+                        <a
+                          href={`/api/project/files/download/${encodeURIComponent(file.fileId || file.name || '')}`}
+                          download={file.name || ''}
+                          className="text-blue-600 hover:text-blue-800"
+                          title="Download"
+                        >
+                          <svg className="w-4 h-4 inline" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5m0 0l5-5m-5 5V4" />
+                          </svg>
+                        </a>
+                        <button
+                          className="text-red-500 hover:text-red-700 ml-2"
+                          title="Delete"
+                          onClick={() => handleDelete(file.fileId)}
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <div className="text-xs text-gray-400 flex flex-col items-center py-4">
+                    <Paperclip className="w-8 h-8 mb-2 text-gray-200" />
+                    No files uploaded yet.
+                  </div>
+                )}
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
+        </Card>
       </div>
     </aside>
   );
@@ -408,7 +535,7 @@ const ProjectDetails = () => {
   // Fetch real project data
   const { data: projectData } = useQuery({
     queryKey: ["singleProject", projectId],
-    queryFn: () => getProjectByIdQueryFn({ workspaceId, projectId }),
+    queryFn: () => getProjectByIdQueryFn({ workspaceId: workspaceId!, projectId: projectId! }),
     enabled: !!workspaceId && !!projectId,
   });
   const project = projectData?.project;
@@ -434,11 +561,11 @@ const ProjectDetails = () => {
   const tasks = tasksData?.tasks || [];
 
   // File upload handler (real file upload)
-  const handleFileUpload = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const form = e.currentTarget;
-    const nameInput = form.elements.namedItem('name') as HTMLInputElement;
-    const fileInput = form.elements.namedItem('file') as HTMLInputElement;
+  const handleFileUpload = async (e?: React.FormEvent<HTMLFormElement>) => {
+    if (e && typeof e.preventDefault === 'function') e.preventDefault();
+    const form = e?.currentTarget;
+    const nameInput = form?.elements.namedItem('name') as HTMLInputElement;
+    const fileInput = form?.elements.namedItem('file') as HTMLInputElement;
     if (!nameInput.value || !fileInput.files || !fileInput.files[0]) return;
     let name = nameInput.value;
     const file = fileInput.files[0];
@@ -452,7 +579,7 @@ const ProjectDetails = () => {
     await axios.post(`/api/project/${projectId}/files`, formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
-    form.reset();
+    form?.reset();
     refetchFiles();
   };
 
@@ -468,29 +595,70 @@ const ProjectDetails = () => {
   }, [projectId]);
 
   return (
-    <div className="w-full flex flex-col md:flex-row space-y-6 md:space-y-0 md:space-x-8 py-4 md:pt-3">
-      <div className="flex-1">
-        <ProjectHeader />
-        <Tabs value={tab} onValueChange={setTab} className="w-full">
-          <TabsList className="mb-4">
-            <TabsTrigger value="analytics">Analytics</TabsTrigger>
-            <TabsTrigger value="tasks">Tasks</TabsTrigger>
-            <TabsTrigger value="activity">Activity Log</TabsTrigger>
-          </TabsList>
-          <TabsContent value="analytics">
-            <ProjectAnalytics />
-            <Separator />
-          </TabsContent>
-          <TabsContent value="tasks">
-            <TaskTable />
-          </TabsContent>
-          <TabsContent value="activity">
-            <ActivityLogTab onPinChange={handlePinChange} />
-          </TabsContent>
-        </Tabs>
+    <ToastProvider>
+      <div className="w-full flex flex-col md:flex-row space-y-6 md:space-y-0 md:space-x-8 py-4 md:pt-3">
+        <div className="flex-1 min-w-0">
+          <ProjectHeader />
+          <Tabs value={tab} onValueChange={setTab} className="w-full">
+            <TabsList className="mb-4">
+              <TabsTrigger value="analytics">Analytics</TabsTrigger>
+              <TabsTrigger value="tasks">Tasks</TabsTrigger>
+              <TabsTrigger value="activity">Activity Log</TabsTrigger>
+              <TabsTrigger value="events">Events</TabsTrigger>
+            </TabsList>
+            <TabsContent value="analytics">
+              <ProjectAnalytics />
+              <Separator />
+            </TabsContent>
+            <TabsContent value="tasks">
+              <TaskTable />
+            </TabsContent>
+            <TabsContent value="activity">
+              <ActivityLogTab onPinChange={handlePinChange} />
+            </TabsContent>
+            <TabsContent value="events">
+              <div className="flex flex-col gap-6">
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button className="w-fit">Schedule Meeting</Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-xl w-full">
+                    <DialogTitle>Schedule a meeting</DialogTitle>
+                    <ScheduleMeeting />
+                  </DialogContent>
+                </Dialog>
+                {/* Upcoming Events List (mock data for now) */}
+                <div className="w-full max-w-xl">
+                  <h3 className="text-lg font-semibold mb-4">Upcoming Events</h3>
+                  {/* Replace with real data when available */}
+                  <ul className="space-y-3">
+                    <li className="rounded-lg border bg-white p-4 flex flex-col gap-1 shadow-sm">
+                      <div className="font-medium text-base">Daily design meeting</div>
+                      <div className="text-xs text-gray-500">2025-07-25 | 10:00 - 10:45</div>
+                      <div className="text-xs text-gray-500">Guests: alice@example.com, bob@example.com</div>
+                    </li>
+                    <li className="rounded-lg border bg-white p-4 flex flex-col gap-1 shadow-sm">
+                      <div className="font-medium text-base">Sprint planning</div>
+                      <div className="text-xs text-gray-500">2025-07-26 | 14:00 - 15:00</div>
+                      <div className="text-xs text-gray-500">Guests: carol@example.com</div>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </TabsContent>
+          </Tabs>
+        </div>
+        <ProjectSidebar
+          project={project}
+          members={members}
+          files={files}
+          pinned={pinned}
+          tasks={tasks}
+          onFileUpload={refetchFiles}
+        />
       </div>
-      <ProjectSidebar project={project} members={members} files={files} pinned={pinned} tasks={tasks} onFileUpload={handleFileUpload} />
-    </div>
+      <ToastViewport />
+    </ToastProvider>
   );
 };
 
