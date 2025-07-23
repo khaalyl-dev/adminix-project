@@ -1,3 +1,4 @@
+// Mongoose model for workspace or project members in the backend application.
 import mongoose, { Document, Schema } from "mongoose";
 import { RoleDocument } from "./roles-permission.model";
 

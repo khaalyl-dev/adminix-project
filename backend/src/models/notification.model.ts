@@ -1,3 +1,4 @@
+// Mongoose model for notifications sent to users in the backend application.
 import mongoose, { Schema, Document } from 'mongoose';
 
 export interface INotification extends Document {

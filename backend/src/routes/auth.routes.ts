@@ -1,3 +1,4 @@
+// Express route definitions for authentication-related API endpoints.
 import { Router } from "express";
 import passport from "passport";
 import {config} from "../config/app.config"

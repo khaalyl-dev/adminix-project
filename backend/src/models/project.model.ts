@@ -1,3 +1,4 @@
+// Mongoose model for projects, including their properties and relationships, in the backend application.
 import mongoose, {Document, Schema} from "mongoose";
 
 export interface ProjectDocument extends Document {

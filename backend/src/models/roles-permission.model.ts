@@ -1,3 +1,4 @@
+// Mongoose model for roles and permissions, defining access control in the backend application.
 import mongoose, {Schema, Document} from "mongoose"; 
 import {
      Permissions,

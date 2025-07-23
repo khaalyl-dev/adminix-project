@@ -1,3 +1,4 @@
+// Mongoose model for workspaces, representing collaborative environments in the backend application.
 import mongoose, { Document, Schema } from "mongoose";
 import { generateInviteCode } from "../utils/uuid";
 

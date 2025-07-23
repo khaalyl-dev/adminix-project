@@ -1,3 +1,4 @@
+// Express route definitions for workspace-related API endpoints.
 import { Router } from "express";
 import { changeWorkspaceMemberRoleController,
      createWorkspaceController,

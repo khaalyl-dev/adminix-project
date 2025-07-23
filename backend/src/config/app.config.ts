@@ -1,3 +1,4 @@
+// Application configuration settings for the backend. This file contains global app-level settings used throughout the project.
 import { getEnv } from "../utils/get-env";
 
 const appConfig = () => ({

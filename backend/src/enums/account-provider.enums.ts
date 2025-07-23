@@ -1,3 +1,4 @@
+// Enum for account providers (e.g., Google, Facebook) used in authentication.
 export const ProviderEnum = {
     GOOGLE:"GOOGLE",
     GITHUB:"GITHUB",

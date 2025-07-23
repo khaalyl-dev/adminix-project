@@ -1,3 +1,4 @@
+// Mongoose model for comments associated with various resources in the backend application.
 import mongoose, { Schema, Document } from 'mongoose';
 
 export interface CommentDocument extends Document {

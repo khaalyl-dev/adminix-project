@@ -1,3 +1,4 @@
+// Service for handling business logic related to tasks.
 import { TaskPriorityEnum, TaskStatusEnum } from "../enums/task.enum";
 import MemberModel from "../models/member.model";
 import ProjectModel from "../models/project.model";

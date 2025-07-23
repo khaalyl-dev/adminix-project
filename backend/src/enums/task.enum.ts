@@ -1,3 +1,4 @@
+// Enum for task statuses and types used throughout the backend application.
 export const TaskStatusEnum = {
     BACKLOG: "BACKLOG", 
     TODO: "TODO",

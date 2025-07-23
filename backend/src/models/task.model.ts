@@ -1,3 +1,4 @@
+// Mongoose model for tasks, including their properties and relationships, in the backend application.
 import mongoose, {Document, Schema} from "mongoose"; 
 import { TaskPriorityEnum, TaskPriorityEnumType, TaskStatusEnum, TaskStatusEnumType } from "../enums/task.enum";
 import { generateInviteCode, generateTaskCode } from "../utils/uuid";

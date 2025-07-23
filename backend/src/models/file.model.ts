@@ -1,3 +1,4 @@
+// Mongoose model for files uploaded or managed by the backend application.
 import mongoose, { Schema, Document } from 'mongoose';
 
 export interface FileDocument extends Document {

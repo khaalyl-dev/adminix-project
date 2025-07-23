@@ -1,3 +1,4 @@
+// Validation schema and logic for project-related API requests.
 import { z } from "zod";
 
 export const emojiSchema = z.string().trim().optional();

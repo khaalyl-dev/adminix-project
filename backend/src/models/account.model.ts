@@ -1,3 +1,4 @@
+// Mongoose model for user accounts in the backend application.
 import mongoose, {Document, Schema} from "mongoose" ; 
 import { ProviderEnum, ProviderEnumType } from "../enums/account-provider.enums";
 

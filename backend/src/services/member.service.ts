@@ -1,3 +1,4 @@
+// Service for handling business logic related to workspace or project members.
 import { ErrorCodeEnum } from "../enums/error-code.enum";
 import { Roles } from "../enums/role.enum";
 import MemberModel from "../models/member.model";

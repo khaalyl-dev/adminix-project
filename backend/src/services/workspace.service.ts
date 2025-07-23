@@ -1,4 +1,4 @@
-/**CREATE NEW WOEKSPACE */
+// Service for handling business logic related to workspaces.
 
 import mongoose from "mongoose";
 import { Roles } from "../enums/role.enum";

@@ -1,3 +1,4 @@
+// Controller for handling user-related API endpoints and business logic.
 import { Request, Response } from "express";
 import { asyncHandler } from "../middlewares/asyncHandler.middleware";
 import { HTTPSTATUS } from "../config/http.config";

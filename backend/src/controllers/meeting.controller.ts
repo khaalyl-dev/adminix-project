@@ -1,3 +1,4 @@
+// Controller for handling meeting-related API endpoints and business logic.
 import { Request, Response } from "express";
 import { google } from "googleapis";
 import AccountModel from "../models/account.model";

@@ -1,3 +1,4 @@
+// Database configuration settings for the backend. This file manages database connection and related options.
 import mongoose from "mongoose";
 import {config} from "./app.config"; 
 

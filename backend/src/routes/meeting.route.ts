@@ -1,3 +1,4 @@
+// Express route definitions for meeting-related API endpoints.
 import { Router } from "express";
 import { scheduleMeetingController, getUpcomingEventsController } from "../controllers/meeting.controller";
 import isAuthenticated from "../middlewares/isAuthenticated.middleware";

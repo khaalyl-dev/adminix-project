@@ -1,3 +1,4 @@
+// Express route definitions for project-related API endpoints.
 import { Router } from "express";
 import { createProjectController,
     deleteProjectController,

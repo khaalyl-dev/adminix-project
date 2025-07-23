@@ -1,3 +1,4 @@
+// Enum for user roles used throughout the backend application.
 import { TypeOf } from "zod";
 
 export const Roles = {

@@ -1,3 +1,4 @@
+// Mongoose model for user profiles and authentication in the backend application.
 import mongoose, {Document, Schema} from "mongoose"; 
 import { compareValue, hashValue } from "../utils/bcrypt";
 import { RoleType, Roles } from "../enums/role.enum";

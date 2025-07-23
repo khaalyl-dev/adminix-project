@@ -1,3 +1,4 @@
+// Service for handling business logic related to users.
 import UserModel from "../models/user.model"
 import { BadRequestException } from "../utils/app.error";
 

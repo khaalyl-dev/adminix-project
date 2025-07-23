@@ -1,3 +1,4 @@
+// Passport.js authentication configuration for the backend. This file sets up authentication strategies and middleware.
 import passport from "passport";
 import { Request } from "express";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";

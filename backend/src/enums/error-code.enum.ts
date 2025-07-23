@@ -1,3 +1,4 @@
+// Enum for error codes used for consistent error handling in the backend application.
 export const ErrorCodeEnum = {
     AUTH_EMAIL_ALREADY_EXISTS: "AUTH_EMAIL_ALREADY_EXISTS",
     AUTH_INVALID_TOKEN: "AUTH_INVALID_TOKEN",

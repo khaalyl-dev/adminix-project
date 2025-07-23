@@ -1,3 +1,4 @@
+// Controller for handling project-related API endpoints and business logic.
 import { asyncHandler } from "../middlewares/asyncHandler.middleware";
 import { Request, Response } from "express";
 import { createProjectSchema, projectIdSchema, updateProjectSchema } from "../validation/project.validation";

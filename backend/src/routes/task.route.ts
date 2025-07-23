@@ -1,3 +1,4 @@
+// Express route definitions for task-related API endpoints.
 import { Router } from "express";
 import { createTaskController, deleteTaskController, getAllTasksController, getTaskByIdController, updateTaskController, getTaskCommentsController, postTaskCommentController, editTaskCommentController, deleteTaskCommentController } from "../controllers/task.controller";
 

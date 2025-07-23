@@ -1,3 +1,4 @@
+// Service for handling authentication and authorization logic.
 import mongoose from "mongoose";
 import UserModel from "../models/user.model";
 import AccountModel from "../models/account.model";

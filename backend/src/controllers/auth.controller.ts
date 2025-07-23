@@ -1,3 +1,4 @@
+// Controller for handling authentication-related API endpoints and business logic.
 import { NextFunction, Request, response, Response } from "express";
 import { asyncHandler } from "../middlewares/asyncHandler.middleware";
 import { config } from "../config/app.config";

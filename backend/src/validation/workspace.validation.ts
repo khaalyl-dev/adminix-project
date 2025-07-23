@@ -1,3 +1,4 @@
+// Validation schema and logic for workspace-related API requests.
 import {z} from "zod";
 
 export const nameSchema = z.string()

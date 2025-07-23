@@ -1,3 +1,4 @@
+// Mongoose model for tracking user or system activities in the backend application.
 import mongoose, { Schema, Document } from 'mongoose';
 
 export interface ActivityDocument extends Document {

@@ -1,3 +1,4 @@
+// Service for handling business logic related to projects.
 import mongoose from "mongoose";
 import ProjectModel from "../models/project.model";
 import TaskModel from "../models/task.model";
