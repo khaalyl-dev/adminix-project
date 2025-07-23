@@ -7,6 +7,7 @@ import { NotFoundException } from "../utils/app.error";
 import { ProviderEnum } from "../enums/account-provider.enums";
 import { loginOrCreateAccountService, verifyUserService } from "../services/auth.service";
 import { emailSchema } from "../validation/auth.validation";
+import AccountModel from "../models/account.model";
 
 
 passport.use(
@@ -15,7 +16,7 @@ passport.use(
     clientID: config.GOOGLE_CLIENT_ID, 
     clientSecret:config.GOOGLE_CLIENT_SECRET, 
     callbackURL: config.GOOGLE_CALLBACK_URL, 
-    scope:["profile", "email"],
+    scope:["profile", "email", "https://www.googleapis.com/auth/calendar.events"],
     passReqToCallback:true,
 }, 
 async(req: Request, accessToken, refreshToken, profile, done ) => {
@@ -33,6 +34,18 @@ async(req: Request, accessToken, refreshToken, profile, done ) => {
             picture:picture,
             email:email,
         });
+        // Store accessToken and refreshToken in AccountModel
+        await AccountModel.findOneAndUpdate(
+          { provider: ProviderEnum.GOOGLE, providerId: googleId },
+          {
+            $set: {
+              refreshToken: refreshToken || null,
+              accessToken: accessToken || null,
+              // tokenExpiry: ... (if available)
+            }
+          },
+          { upsert: false }
+        );
         done(null,user); 
      } catch (error) {
         done(error,false); 

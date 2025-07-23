@@ -7,6 +7,9 @@ import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { getProjectByIdQueryFn } from "@/lib/api";
 import PermissionsGuard from "@/components/resuable/permission-guard";
 import { Permissions } from "@/constant";
+import { Dialog, DialogTrigger, DialogContent, DialogTitle } from '@/components/ui/dialog';
+import ScheduleMeeting from '@/page/workspace/ScheduleMeeting';
+import { Calendar } from 'lucide-react';
 
 const ProjectHeader = () => {
   const param = useParams();
@@ -52,7 +55,23 @@ const ProjectHeader = () => {
           <EditProjectDialog project={project} />
         </PermissionsGuard>
       </div>
-      <CreateTaskDialog projectId={projectId} />
+      <div className="flex gap-2">
+        <CreateTaskDialog projectId={projectId} />
+        <Dialog>
+          <DialogTrigger asChild>
+            <button
+              className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 shadow h-9 px-4 py-2 bg-white text-black hover:bg-gray-100"
+            >
+              <Calendar className="w-4 h-4" />
+              Schedule Meeting
+            </button>
+          </DialogTrigger>
+          <DialogContent className="max-w-xl w-full">
+            <DialogTitle>Schedule a meeting</DialogTitle>
+            <ScheduleMeeting />
+          </DialogContent>
+        </Dialog>
+      </div>
     </div>
   );
 };

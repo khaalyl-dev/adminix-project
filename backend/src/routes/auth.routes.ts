@@ -17,7 +17,8 @@ authRoutes.post("/logout",logOutController);
 authRoutes.get(
     "/google",
     passport.authenticate("google", {
-        scope: ["profile","email"],
+        scope: ["profile","email", "https://www.googleapis.com/auth/calendar.events"],
+        prompt: "consent",
     })    
 );
 

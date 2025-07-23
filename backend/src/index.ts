@@ -22,6 +22,7 @@ import taskRoutes from "./routes/task.route";
 import http from "http";
 import { Server as SocketIOServer } from "socket.io";
 import path from "path";
+import meetingRoutes from "./routes/meeting.route";
 
 
 const app= express(); 
@@ -69,7 +70,7 @@ app.use(`${BASE_PATH}/workspace`,isAuthenticated, workspaceRoutes);
 app.use(`${BASE_PATH}/member`, isAuthenticated, memberRoutes);
 app.use(`${BASE_PATH}/project`, isAuthenticated, projectRoutes);
 app.use(`${BASE_PATH}/task`, isAuthenticated, taskRoutes);
-
+app.use("/api/meetings", meetingRoutes);
 
 
 app.use(errorHandler); 

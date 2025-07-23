@@ -3,15 +3,14 @@ import ProjectAnalytics from "@/components/workspace/project/project-analytics";
 import ProjectHeader from "@/components/workspace/project/project-header";
 import TaskTable from "@/components/workspace/task/task-table";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import axios from 'axios';
-import { useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { formatDistanceToNow, format } from 'date-fns';
-import {Loader2, Paperclip, Link as Star, Pin, PinOff } from 'lucide-react';
+import {Loader2, Paperclip, Link as Star, Pin, PinOff, Calendar, Trash2 } from 'lucide-react';
 import useWorkspaceId from '@/hooks/use-workspace-id';
 import { getAllTasksQueryFn, getProjectByIdQueryFn } from '@/lib/api';
 import { useQuery } from '@tanstack/react-query';
@@ -531,6 +530,8 @@ const ProjectDetails = () => {
   const workspaceId = useWorkspaceId();
   const [tab, setTab] = useState("analytics");
   const [pinned, setPinned] = useState<any[]>([]);
+  const [upcomingEvents, setUpcomingEvents] = useState<any[]>([]);
+  const [eventsLoading, setEventsLoading] = useState(false);
 
   // Fetch real project data
   const { data: projectData } = useQuery({
@@ -594,6 +595,16 @@ const ProjectDetails = () => {
     handlePinChange();
   }, [projectId]);
 
+  useEffect(() => {
+    if (tab === "events" && projectId) {
+      setEventsLoading(true);
+      axios.get(`/api/meetings/events?projectId=${projectId}`)
+        .then(res => setUpcomingEvents(res.data.events || []))
+        .catch(() => setUpcomingEvents([]))
+        .finally(() => setEventsLoading(false));
+    }
+  }, [tab, projectId]);
+
   return (
     <ToastProvider>
       <div className="w-full flex flex-col md:flex-row space-y-6 md:space-y-0 md:space-x-8 py-4 md:pt-3">
@@ -618,30 +629,38 @@ const ProjectDetails = () => {
             </TabsContent>
             <TabsContent value="events">
               <div className="flex flex-col gap-6">
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <Button className="w-fit">Schedule Meeting</Button>
-                  </DialogTrigger>
-                  <DialogContent className="max-w-xl w-full">
-                    <DialogTitle>Schedule a meeting</DialogTitle>
-                    <ScheduleMeeting />
-                  </DialogContent>
-                </Dialog>
-                {/* Upcoming Events List (mock data for now) */}
-                <div className="w-full max-w-xl">
+                {/* Upcoming Events List */}
+                <div className="w-full">
                   <h3 className="text-lg font-semibold mb-4">Upcoming Events</h3>
-                  {/* Replace with real data when available */}
                   <ul className="space-y-3">
-                    <li className="rounded-lg border bg-white p-4 flex flex-col gap-1 shadow-sm">
-                      <div className="font-medium text-base">Daily design meeting</div>
-                      <div className="text-xs text-gray-500">2025-07-25 | 10:00 - 10:45</div>
-                      <div className="text-xs text-gray-500">Guests: alice@example.com, bob@example.com</div>
-                    </li>
-                    <li className="rounded-lg border bg-white p-4 flex flex-col gap-1 shadow-sm">
-                      <div className="font-medium text-base">Sprint planning</div>
-                      <div className="text-xs text-gray-500">2025-07-26 | 14:00 - 15:00</div>
-                      <div className="text-xs text-gray-500">Guests: carol@example.com</div>
-                    </li>
+                    {eventsLoading ? (
+                      <div>Loading events...</div>
+                    ) : upcomingEvents.length === 0 ? (
+                      <div className="text-gray-400 text-sm">No upcoming events.</div>
+                    ) : (
+                      upcomingEvents.map(event => (
+                        <li key={event.id} className="rounded-lg border bg-white p-4 flex items-center justify-between gap-4 shadow-sm">
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium text-base">{event.summary}</div>
+                            <div className="text-xs text-gray-500">
+                              {event.start?.dateTime?.slice(0, 16).replace('T', ' | ')} - {event.end?.dateTime?.slice(11, 16)}
+                            </div>
+                            <div className="text-xs text-gray-500 truncate">
+                              Guests: {(event.attendees || []).map((a: any) => a.email).join(', ')}
+                            </div>
+                          </div>
+                          <div className="flex flex-col items-end gap-2 w-full max-w-xs">
+                            {event.hangoutLink && (
+                              <a href={event.hangoutLink} target="_blank" rel="noopener noreferrer"
+                                className="w-full inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring shadow h-9 px-4 py-2 bg-black text-white hover:bg-zinc-800 mb-2">
+                                Join
+                              </a>
+                            )}
+                            {/* Optionally, add a Delete button here */}
+                          </div>
+                        </li>
+                      ))
+                    )}
                   </ul>
                 </div>
               </div>
