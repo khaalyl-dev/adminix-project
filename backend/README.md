@@ -2,6 +2,33 @@
 
 This README provides instructions for setting up and testing the backend of the AdminiX project.
 
+---
+
+## Folder Structure
+
+```
+backend/
+├── src/
+│   ├── @types/         # TypeScript type definitions
+│   ├── config/         # App, DB, and auth config
+│   ├── controllers/    # Express route controllers
+│   ├── enums/          # Enum definitions
+│   ├── middlewares/    # Express middlewares
+│   ├── models/         # Mongoose models
+│   ├── routes/         # API route definitions
+│   ├── seeders/        # Seed scripts for roles, superadmin, etc.
+│   ├── services/       # Business logic
+│   ├── utils/          # Utility functions
+│   ├── validation/     # Request validation schemas
+│   └── index.ts        # App entry point
+├── dist/               # Compiled output
+├── package.json        # Backend dependencies and scripts
+├── tsconfig.json       # TypeScript config
+└── ...
+```
+
+---
+
 ## Prerequisites
 - Node.js (v16 or higher recommended)
 - npm (comes with Node.js)

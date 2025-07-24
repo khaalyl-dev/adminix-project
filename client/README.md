@@ -1,3 +1,41 @@
+# Client Setup Guide
+
+This README provides instructions for setting up and running the frontend (client) of the AdminiX project.
+
+---
+
+## Folder Structure
+
+```
+client/
+├── src/
+│   ├── assets/         # Static assets (images, icons, etc.)
+│   ├── components/     # Reusable UI and feature components
+│   ├── context/        # React context providers
+│   ├── hooks/          # Custom React hooks
+│   ├── lib/            # API utilities, helpers
+│   ├── page/           # Main pages (workspace, project, auth, errors, etc.)
+│   ├── routes/         # React Router route definitions
+│   ├── types/          # TypeScript types/interfaces
+│   ├── constant/       # App-wide constants
+│   └── main.tsx        # App entry point
+├── public/             # Public files (images, favicon, etc.)
+├── package.json        # Client dependencies and scripts
+├── vite.config.ts      # Vite config
+├── tailwind.config.js  # Tailwind CSS config
+├── tsconfig.json       # TypeScript config
+└── ...
+```
+
+---
+
+## Prerequisites
+- Node.js (v16 or higher recommended)
+- npm (comes with Node.js)
+
+## Environment Variables
+
+```
 # React + TypeScript + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
