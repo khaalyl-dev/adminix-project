@@ -1,3 +1,5 @@
+// workspace-analytics.tsx
+// This file provides the analytics component for displaying workspace statistics such as total tasks, overdue tasks, and completed tasks.
 import useWorkspaceId from "@/hooks/use-workspace-id";
 import AnalyticsCard from "./common/analytics-card";
 import { useQuery } from "@tanstack/react-query";

@@ -1,3 +1,5 @@
+// task-detail-dialog.tsx
+// This file provides the dialog/modal component for viewing and editing task details, including status, assignee, and comments.
 import React, { useState } from "react";
 import {
   Dialog,

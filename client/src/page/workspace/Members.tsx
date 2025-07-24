@@ -1,3 +1,5 @@
+// Members.tsx
+// This file displays the members of a workspace, including member management and invitations.
 import { Separator } from "@/components/ui/separator";
 import InviteMember from "@/components/workspace/member/invite-member";
 import AllMembers from "@/components/workspace/member/all-members";

@@ -1,3 +1,5 @@
+// use-confirm-dialog.tsx
+// This file provides a custom React hook for managing the state of confirmation dialogs/modals.
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { parseAsBoolean, useQueryState } from "nuqs";
 import { useState } from "react";

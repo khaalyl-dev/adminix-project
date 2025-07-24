@@ -1,3 +1,5 @@
+// project-analytics.tsx
+// This file provides the analytics component for displaying project-specific statistics in the workspace.
 import { useParams } from "react-router-dom";
 import AnalyticsCard from "../common/analytics-card";
 import useWorkspaceId from "@/hooks/use-workspace-id";

@@ -1,3 +1,5 @@
+// use-permissions.ts
+// This file provides a custom React hook for managing and checking user permissions in the workspace.
 import { PermissionType } from "@/constant";
 import { UserType, WorkspaceWithMembersType } from "@/types/api.type"
 import { useEffect, useMemo, useState } from "react";

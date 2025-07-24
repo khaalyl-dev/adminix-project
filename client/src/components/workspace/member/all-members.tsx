@@ -1,3 +1,6 @@
+// all-members.tsx
+// This file provides the component for displaying all members of a workspace, including member details, roles, and management actions.
+// Each major component and function is commented inline for clarity.
 import { ChevronDown, Loader } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";

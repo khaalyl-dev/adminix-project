@@ -1,3 +1,6 @@
+// create-project-form.tsx
+// This file provides the form component for creating a new project, including validation, input fields, and submission logic.
+// Each major component and function is commented inline for clarity.
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";

@@ -1,3 +1,5 @@
+// analytics-card.tsx
+// This file provides a reusable card component for displaying analytics/statistics in the workspace dashboard or analytics section.
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Activity, ArrowBigUp, ArrowBigDown, Loader } from "lucide-react";
 

@@ -1,3 +1,5 @@
+// project-header.tsx
+// This file provides the header component for project pages, displaying the project name, emoji, and optional actions or navigation.
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useParams } from "react-router-dom";
 import CreateTaskDialog from "../task/create-task-dialog";

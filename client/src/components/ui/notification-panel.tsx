@@ -3,6 +3,7 @@ import { Bell, CheckCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import useWorkspaceId from "@/hooks/use-workspace-id";
 import axios from "axios";
+import { formatDistanceToNow, format } from "date-fns";
 
 interface Notification {
   _id: string;
@@ -15,6 +16,23 @@ interface Notification {
     name: string;
     profilePicture: string | null;
   };
+}
+
+function highlightNames(message: string) {
+  return message.split(/({{.*?}})/g).map((part, i) => {
+    if (part.startsWith("{{") && part.endsWith("}}")) {
+      const name = part.slice(2, -2);
+      return (
+        <span
+          key={i}
+          className="bg-purple-100 text-purple-700 rounded px-1 font-semibold"
+        >
+          {name}
+        </span>
+      );
+    }
+    return part;
+  });
 }
 
 const NotificationPanel = () => {
@@ -126,12 +144,17 @@ const NotificationPanel = () => {
                         <span className="font-semibold text-sm text-gray-800">{n.userId?.name || 'Unknown'}</span>
                         <span className="text-xs text-gray-400">{n.type.charAt(0).toUpperCase() + n.type.slice(1)}</span>
                       </div>
-                      <span className="ml-auto text-xs text-gray-400">
-                        {new Date(n.createdAt).toLocaleString([], { hour: '2-digit', minute: '2-digit', hour12: true, month: 'short', day: 'numeric', year: 'numeric' })}
+                      <span className="ml-auto text-xs">
+                        <span
+                          className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded font-semibold cursor-help"
+                          title={format(new Date(n.createdAt), "PPpp")}
+                        >
+                          {formatDistanceToNow(new Date(n.createdAt), { addSuffix: true })}
+                        </span>
                       </span>
                     </div>
                     <div className="text-sm mt-1 text-gray-700">
-                      {actionMessage}
+                      {highlightNames(actionMessage)}
                     </div>
                   </div>
                 );

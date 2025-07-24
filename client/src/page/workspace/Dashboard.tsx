@@ -1,3 +1,5 @@
+// Dashboard.tsx
+// This file renders the main dashboard for a workspace, including workspace analytics, recent projects, tasks, and members.
 import { Plus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 

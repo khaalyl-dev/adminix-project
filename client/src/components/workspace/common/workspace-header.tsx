@@ -1,3 +1,5 @@
+// workspace-header.tsx
+// This file provides the header component for workspace pages, displaying the workspace name and optional actions or navigation.
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useAuthContext } from "@/context/auth-provider";
 import { Loader } from "lucide-react";

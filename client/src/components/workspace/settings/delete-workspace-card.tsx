@@ -1,3 +1,5 @@
+// delete-workspace-card.tsx
+// This file provides the card component for deleting a workspace, including confirmation logic and UI for dangerous actions.
 import { ConfirmDialog } from "@/components/resuable/confirm-dialog";
 import PermissionsGuard from "@/components/resuable/permission-guard";
 import { Button } from "@/components/ui/button";

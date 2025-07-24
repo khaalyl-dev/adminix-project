@@ -1,3 +1,6 @@
+// use-toast.ts
+// This file provides a custom React hook for managing toast notifications in the AdminiX client application.
+// Each major function and logic is commented inline for clarity.
 "use client"
 
 // Inspired by react-hot-toast library

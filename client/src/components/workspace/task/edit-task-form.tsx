@@ -1,3 +1,6 @@
+// edit-task-form.tsx
+// This file provides the form component for editing an existing task, including validation, input fields, and submission logic.
+// Each major component and function is commented inline for clarity.
 import { z } from "zod";
 import { format } from "date-fns";
 import { zodResolver } from "@hookform/resolvers/zod";

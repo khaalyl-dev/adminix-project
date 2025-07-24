@@ -12,6 +12,7 @@ import Notification from "../models/notification.model";
 import { io } from "../index";
 import { WorkspaceDocument } from "../models/workspace.model";
 import mongoose from 'mongoose';
+import Activity from "../models/activity.model";
 
 
 export const createWorkspaceController = asyncHandler(
@@ -28,9 +29,14 @@ export const createWorkspaceController = asyncHandler(
           userId,
           workspaceId,
           type: 'workspace',
-          message: `Workspace '${workspace.name}' created`,
+          message: `Workspace {{${(workspace as WorkspaceDocument).name}}} created`,
         });
         io.to(workspaceId).emit('notification', notification);
+        await Activity.create({
+          userId,
+          type: 'workspace_create',
+          message: `Workspace created: {{${(workspace as WorkspaceDocument).name}}}`,
+        });
          return res.status(HTTPSTATUS.CREATED).json({
             message:"Workspace created successfully", 
             workspace, 
@@ -154,9 +160,14 @@ export const updateWorkspaceByIdController = asyncHandler (
       userId,
       workspaceId,
       type: 'workspace',
-      message: `Workspace '${(workspace as WorkspaceDocument).name}' updated`,
+      message: `Workspace {{${(workspace as WorkspaceDocument).name}}} updated`,
     });
     io.to(workspaceId).emit('notification', notification);
+    await Activity.create({
+      userId,
+      type: 'workspace_update',
+      message: `Workspace updated: {{${(workspace as WorkspaceDocument).name}}}`,
+    });
 
     return res.status(HTTPSTATUS.OK).json({
       message:"Workspace updated successfully", 

@@ -44,7 +44,7 @@ export const createProjectController = asyncHandler(
       userId,
       workspaceId,
       type: 'project',
-      message: `Project '${project.name}' created`,
+      message: `Project {{${project.name}}} created`,
     });
     io.to(workspaceId.toString()).emit('notification', notification);
 
@@ -52,7 +52,7 @@ export const createProjectController = asyncHandler(
       projectId: project._id,
       userId: userId,
       type: 'project_create',
-      message: `Project created: ${project.name}`,
+      message: `Project created: {{${project.name}}}`,
     });
 
     return res.status(HTTPSTATUS.CREATED).json({

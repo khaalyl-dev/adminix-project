@@ -1,3 +1,5 @@
+// recent-tasks.tsx
+// This file provides the component for displaying a list of recent tasks in a workspace or project.
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { TaskPriorityEnum, TaskStatusEnum } from "@/constant";

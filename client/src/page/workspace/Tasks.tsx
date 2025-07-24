@@ -1,3 +1,5 @@
+// Tasks.tsx
+// This file renders the main Tasks page for a workspace, displaying the task table and a button to create new tasks.
 import CreateTaskDialog from "@/components/workspace/task/create-task-dialog";
 import TaskTable from "@/components/workspace/task/task-table";
 

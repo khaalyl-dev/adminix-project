@@ -1,3 +1,5 @@
+// edit-task-dialog.tsx
+// This file provides the dialog/modal component for editing an existing task, wrapping the edit task form.
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import EditTaskForm from "./edit-task-form";
 import { TaskType } from "@/types/api.type";

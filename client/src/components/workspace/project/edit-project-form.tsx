@@ -1,3 +1,6 @@
+// edit-project-form.tsx
+// This file provides the form component for editing an existing project, including validation, input fields, and submission logic.
+// Each major component and function is commented inline for clarity.
 import { useEffect, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";

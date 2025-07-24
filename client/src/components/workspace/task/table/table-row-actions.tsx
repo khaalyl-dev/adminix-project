@@ -1,3 +1,5 @@
+// table-row-actions.tsx
+// This file provides the component for rendering row-level actions (edit, delete, etc.) in the task table.
 import { useState } from "react";
 import { Row } from "@tanstack/react-table";
 import { MoreHorizontal, Pencil } from "lucide-react";

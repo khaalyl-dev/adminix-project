@@ -1,3 +1,6 @@
+// task-table.tsx
+// This file provides the main table component for displaying and managing tasks in a workspace or project.
+// Each major component and function is commented inline for clarity.
 import { FC, useState } from "react";
 import { getColumns } from "./table/columns";
 import { DataTable } from "./table/table";

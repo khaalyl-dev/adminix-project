@@ -1,3 +1,5 @@
+// use-get-projects.tsx
+// This file provides a custom React hook for fetching project data from the API using React Query.
 import { getProjectsInWorkspaceQueryFn } from "@/lib/api";
 import { AllProjectPayloadType } from "@/types/api.type";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";

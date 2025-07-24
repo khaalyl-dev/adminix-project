@@ -1,3 +1,5 @@
+// create-task-dialog.tsx
+// This file provides the dialog/modal component for creating a new task, wrapping the create task form.
 import { useState } from "react";
 import { Plus } from "lucide-react";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";

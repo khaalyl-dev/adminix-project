@@ -1,3 +1,5 @@
+// recent-members.tsx
+// This file provides the component for displaying recently joined members of a workspace.
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import useGetWorkspaceMembers from "@/hooks/api/use-get-workspace-members";
 import useWorkspaceId from "@/hooks/use-workspace-id";

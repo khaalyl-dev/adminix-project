@@ -39,7 +39,7 @@ const userId = req.user?._id;
       userId,
       workspaceId,
       type: 'task',
-      message: `Task '${task.title}' created`,
+      message: `Task {{${task.title}}} created`,
     });
     io.to(workspaceId.toString()).emit('notification', notification);
 
@@ -47,7 +47,7 @@ const userId = req.user?._id;
       projectId: projectId,
       userId: userId,
       type: 'task_create',
-      message: `Task created: ${task.title}`,
+      message: `Task created: {{${task.title}}}`,
     });
 
     return res.status(HTTPSTATUS.OK).json({

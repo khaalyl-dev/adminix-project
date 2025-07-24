@@ -1,7 +1,6 @@
-
-
-// ProjectSetup page guides the user through creating a workspace, project, and tasks with a multi-step form and live preview.
-// NOTE: To edit an existing workspace, navigate to `/ProjectSetup/:workspaceId`. For a new workspace, use `/ProjectSetup`.
+// ProjectSetup.tsx
+// This file provides the multi-step project setup wizard for creating a new project, including project details, team members, tasks, and review steps.
+// Each major component and function is commented inline for clarity.
 import React, { useState, useEffect } from "react";
 import "./ProjectSetup.css";
 import { useMutation, useQueryClient } from "@tanstack/react-query";

@@ -1,3 +1,5 @@
+// columns.tsx
+// This file defines the column configuration for the task table, including column definitions, renderers, and logic for each column.
 import { Column, ColumnDef, Row } from "@tanstack/react-table";
 import { format } from "date-fns";
 

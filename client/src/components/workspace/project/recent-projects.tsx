@@ -1,3 +1,5 @@
+// recent-projects.tsx
+// This file provides the component for displaying a list of recent projects in a workspace.
 import { Link } from "react-router-dom";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import useWorkspaceId from "@/hooks/use-workspace-id";

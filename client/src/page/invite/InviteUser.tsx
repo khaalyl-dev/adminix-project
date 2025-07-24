@@ -1,3 +1,6 @@
+// InviteUser.tsx
+// This file provides the UI and logic for inviting a user to join a workspace via an invite link. Handles authentication, joining the workspace, and user feedback.
+// Each major component and function is commented inline for clarity.
 import { Loader } from "lucide-react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import {

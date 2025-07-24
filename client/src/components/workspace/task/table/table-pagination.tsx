@@ -1,3 +1,5 @@
+// table-pagination.tsx
+// This file provides the pagination component for the task table, allowing users to navigate between pages of tasks.
 import { Table } from "@tanstack/react-table";
 import {
   ChevronLeft,

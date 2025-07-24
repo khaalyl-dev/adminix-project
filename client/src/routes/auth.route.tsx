@@ -1,3 +1,5 @@
+// auth.route.tsx
+// This file defines the authentication route logic for the AdminiX client application, handling access to auth pages and redirecting authenticated users.
 import { DashboardSkeleton } from "@/components/skeleton-loaders/dashboard-skeleton";
 import useAuth from "@/hooks/api/use-auth";
 import { Navigate, Outlet, useLocation } from "react-router-dom";

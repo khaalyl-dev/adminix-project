@@ -1,3 +1,5 @@
+// use-mobile.tsx
+// This file provides a custom React hook for detecting mobile device screen sizes and responsive logic.
 import * as React from "react"
 
 const MOBILE_BREAKPOINT = 768

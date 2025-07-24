@@ -1,3 +1,7 @@
+// ProjectDetails.tsx
+// This file contains the main Project Details page, including analytics, tasks, activity log, events, and sidebar for a project workspace.
+// It handles fetching project data, members, files, tasks, and rendering tabs for analytics, tasks, activity log, and events.
+// Each major component and function is commented inline for clarity.
 import { Separator } from "@/components/ui/separator";
 import ProjectAnalytics from "@/components/workspace/project/project-analytics";
 import ProjectHeader from "@/components/workspace/project/project-header";
@@ -279,7 +283,9 @@ function ActivityLogTab({ onPinChange }: { onPinChange?: () => void }) {
                               <button className="ml-2 text-gray-400 hover:text-yellow-500" title="Pin" onClick={() => handlePin(a._id)}><Pin className="w-4 h-4" /></button>
                             )}
                           </div>
-                          <div className="text-gray-800 text-sm whitespace-pre-line" dangerouslySetInnerHTML={{ __html: highlightMentions(a.message) }} />
+                          <div className="text-gray-800 text-sm whitespace-pre-line">
+                            {highlightMentions(formatMeetingTime(a.message))}
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -461,7 +467,7 @@ function ProjectSidebar({ project, members, files, pinned, tasks, onFileUpload }
               {pinned.map((item: any) => (
                 <li key={item._id} className="flex items-center gap-2 text-xs text-gray-700">
                   <Pin className="w-4 h-4 text-yellow-400" />
-                  <span dangerouslySetInnerHTML={{ __html: highlightMentions(item.message, members, tasks) }} />
+                  <span>{highlightMentions(formatMeetingTime(item.message), members, tasks)}</span>
                 </li>
               ))}
             </ul>
@@ -523,6 +529,30 @@ function ProjectSidebar({ project, members, files, pinned, tasks, onFileUpload }
       </div>
     </aside>
   );
+}
+
+// Utility to highlight {{name}} and format meeting times
+function highlightNames(message: string) {
+  return message.split(/({{.*?}})/g).map((part, i) => {
+    if (part.startsWith("{{") && part.endsWith("}}")) {
+      const name = part.slice(2, -2);
+      return (
+        <span key={i} className="bg-purple-100 text-purple-700 rounded px-1 font-semibold">{name}</span>
+      );
+    }
+    return part;
+  });
+}
+function formatMeetingTime(message: string) {
+  return message.replace(/\(([^)]+) - ([^)]+)\)/, (match, from, to) => {
+    try {
+      const formattedFrom = format(new Date(from), "PPpp");
+      const formattedTo = format(new Date(to), "PPpp");
+      return `(${formattedFrom} - ${formattedTo})`;
+    } catch {
+      return match;
+    }
+  });
 }
 
 const ProjectDetails = () => {

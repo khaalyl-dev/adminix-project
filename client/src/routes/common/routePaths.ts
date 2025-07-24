@@ -1,3 +1,5 @@
+// routePaths.ts
+// This file defines and exports common route path constants for the AdminiX client application. Used to avoid hardcoding route strings throughout the codebase.
 export const isAuthRoute = (pathname: string): boolean => {
   return Object.values(AUTH_ROUTES).includes(pathname);
 };

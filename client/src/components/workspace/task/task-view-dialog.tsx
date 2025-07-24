@@ -1,3 +1,6 @@
+// task-view-dialog.tsx
+// This file provides the dialog/modal component for viewing detailed information about a task, including comments, activity, and task actions.
+// Each major component and function is commented inline for clarity.
 import React, { useState } from "react";
 import {
   Dialog,

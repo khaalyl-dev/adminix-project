@@ -1,3 +1,5 @@
+// use-create-workspace-dialog.tsx
+// This file provides a custom React hook for managing the state of the create workspace dialog/modal.
 import { parseAsBoolean, useQueryState } from "nuqs";
 
 const useCreateWorkspaceDialog = () => {

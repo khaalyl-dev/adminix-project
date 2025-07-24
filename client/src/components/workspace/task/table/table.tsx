@@ -1,3 +1,6 @@
+// table.tsx
+// This file provides the main table component logic for rendering and managing task data in a tabular format, including sorting, filtering, and selection.
+// Each major component and function is commented inline for clarity.
 import * as React from "react";
 import {
   ColumnDef,

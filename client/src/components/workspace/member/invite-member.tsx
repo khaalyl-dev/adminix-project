@@ -1,3 +1,5 @@
+// invite-member.tsx
+// This file provides the component for inviting new members to a workspace, including generating and copying invite links.
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

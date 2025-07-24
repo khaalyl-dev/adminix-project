@@ -1,4 +1,6 @@
-/* ProjectSetup.css */
+/* ProjectSetup.css
+   This file contains styles for the Project Setup wizard, including layout, step transitions, and custom UI elements for the multi-step project creation process.
+*/
 
 /* General layout */
 .page-container {

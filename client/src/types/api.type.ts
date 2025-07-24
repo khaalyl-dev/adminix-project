@@ -1,3 +1,6 @@
+// api.type.ts
+// This file defines TypeScript types and interfaces for API responses, request payloads, and domain models used throughout the client application.
+// Each major type/interface is commented inline for clarity.
 import {
   PermissionType,
   TaskPriorityEnumType,

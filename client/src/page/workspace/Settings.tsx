@@ -1,3 +1,5 @@
+// Settings.tsx
+// This file provides the workspace settings page, allowing users to manage workspace settings and configurations.
 import { Separator } from "@/components/ui/separator";
 import WorkspaceHeader from "@/components/workspace/common/workspace-header";
 import EditWorkspaceForm from "@/components/workspace/edit-workspace-form";

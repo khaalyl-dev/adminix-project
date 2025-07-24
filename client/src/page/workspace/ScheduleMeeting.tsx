@@ -1,3 +1,5 @@
+// ScheduleMeeting.tsx
+// This file provides the UI and logic for scheduling a Google Meet meeting, including guest management, date/time selection, and displaying the meeting link.
 import React, { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -6,6 +8,8 @@ import axios from 'axios';
 import { useParams } from 'react-router-dom';
 import useGetWorkspaceMembers from '@/hooks/api/use-get-workspace-members';
 import useWorkspaceId from '@/hooks/use-workspace-id';
+import { FaVideo } from "react-icons/fa";
+import { toast } from "@/hooks/use-toast";
 
 const COLORS = ['#4285F4', '#EA4335', '#FBBC05', '#34A853', '#A142F4'];
 
@@ -169,17 +173,19 @@ export default function ScheduleMeeting() {
           <div>
             <label className="block text-xs font-medium mb-1">Video call</label>
             {meetLink ? (
-              <div className="flex items-center gap-2 bg-blue-50 border border-blue-200 rounded px-3 py-2 mt-1">
-                <a href={meetLink} target="_blank" rel="noopener noreferrer" className="text-blue-700 font-medium underline break-all">
+              <div className="flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-lg px-3 py-3 mt-1 shadow-sm">
+                <FaVideo color="#4285F4" size={22} className="mr-2" />
+                <a href={meetLink} target="_blank" rel="noopener noreferrer" className="text-blue-700 font-semibold underline break-all text-base hover:text-blue-900 transition-colors">
                   {meetLink}
                 </a>
                 <Button
                   type="button"
                   size="icon"
                   variant="ghost"
-                  onClick={() => navigator.clipboard.writeText(meetLink)}
+                  onClick={() => {navigator.clipboard.writeText(meetLink); toast({ title: 'Copied', description: 'Meeting link copied to clipboard', variant: 'success' });}}
                   className="ml-2"
                   aria-label="Copy link"
+                  title="Copy meeting link"
                 >📋</Button>
               </div>
             ) : (

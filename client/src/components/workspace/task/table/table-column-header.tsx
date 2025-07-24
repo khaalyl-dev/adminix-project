@@ -1,3 +1,5 @@
+// table-column-header.tsx
+// This file provides the component for rendering column headers in the task table, including sorting and filtering controls.
 import { Column } from "@tanstack/react-table";
 import { ArrowDown, ArrowUp, ChevronsUpDown, EyeOff } from "lucide-react";
 

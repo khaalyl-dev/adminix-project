@@ -5,6 +5,10 @@ import AccountModel from "../models/account.model";
 import { asyncHandler } from "../middlewares/asyncHandler.middleware";
 import { ProviderEnum } from "../enums/account-provider.enums";
 import { config } from "../config/app.config";
+import Notification from "../models/notification.model";
+import Activity from "../models/activity.model";
+import ProjectModel from "../models/project.model";
+import { format } from "date-fns";
 
 export const scheduleMeetingController = asyncHandler(async (req: Request, res: Response) => {
   const userId = req.user?._id;
@@ -55,6 +59,38 @@ export const scheduleMeetingController = asyncHandler(async (req: Request, res: 
     requestBody: event
   });
 
+  let workspaceId;
+  let notificationType: 'workspace' | 'project' = 'workspace';
+  if (projectId) {
+    const project = await ProjectModel.findById(projectId);
+    if (project) {
+      workspaceId = project.workspace;
+      notificationType = 'project';
+    }
+  }
+  if (!workspaceId) {
+    workspaceId = req.body.workspaceId || req.user?.currentWorkspace;
+  }
+  const formattedStart = format(new Date(start), "PPpp");
+  const formattedEnd = format(new Date(end), "p");
+  // Create notification
+  await Notification.create({
+    userId,
+    workspaceId,
+    type: notificationType,
+    message: `Meeting {{${title}}} scheduled from ${formattedStart} to ${formattedEnd}`,
+  });
+
+  // Create activity log
+  if (projectId) {
+    await Activity.create({
+      userId,
+      projectId,
+      type: 'meeting_schedule',
+      message: `Scheduled meeting: {{${title}}} (${formattedStart} - ${formattedEnd})`,
+    });
+  }
+
   return res.json({
     meetLink: data.hangoutLink,
     eventId: data.id,
@@ -96,7 +132,7 @@ export const getUpcomingEventsController = asyncHandler(async (req, res) => {
   const projectId = req.query.projectId;
   if (projectId) {
     events = events.filter(
-      e => e.description && e.description.includes(`ProjectId: ${projectId}`)
+      (e: any) => e.description && e.description.includes(`ProjectId: ${projectId}`)
     );
   }
 

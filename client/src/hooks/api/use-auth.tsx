@@ -1,3 +1,5 @@
+// use-auth.tsx
+// This file provides a custom React hook for fetching and managing authentication state using React Query.
 import { getCurrentUserQueryFn } from "@/lib/api";
 import { useQuery } from "@tanstack/react-query";
 

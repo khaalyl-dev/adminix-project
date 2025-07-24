@@ -1,3 +1,6 @@
+// index.tsx
+// This file sets up the main routing for the AdminiX client application using React Router. It includes public, protected, and authentication routes.
+// Each major route and logic is commented inline for clarity.
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import ProtectedRoute from "./protected.route";
 import AuthRoute from "./auth.route";

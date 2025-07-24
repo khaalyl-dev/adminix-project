@@ -1,3 +1,6 @@
+// routes.tsx
+// This file defines shared route definitions and route arrays for the AdminiX client application. Used to organize and export route configurations for use in the main router.
+// Each major export and logic is commented inline for clarity.
 import GoogleOAuthFailure from "@/page/auth/GoogleOAuthFailure";
 import SignIn from "@/page/auth/Sign-in";
 import SignUp from "@/page/auth/Sign-up";

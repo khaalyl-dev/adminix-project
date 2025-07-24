@@ -1,3 +1,5 @@
+// use-get-workspace.tsx
+// This file provides a custom React hook for fetching workspace data from the API using React Query.
 import { getWorkspaceByIdQueryFn } from "@/lib/api";
 import { CustomError } from "@/types/custom-error.type";
 import { useQuery } from "@tanstack/react-query";

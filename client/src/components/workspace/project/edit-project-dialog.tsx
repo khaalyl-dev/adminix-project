@@ -1,3 +1,5 @@
+// edit-project-dialog.tsx
+// This file provides the dialog/modal component for editing an existing project, wrapping the edit project form.
 import { Edit3 } from "lucide-react";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import EditProjectForm from "./edit-project-form";

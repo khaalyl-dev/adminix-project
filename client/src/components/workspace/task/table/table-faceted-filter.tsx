@@ -1,3 +1,5 @@
+// table-faceted-filter.tsx
+// This file provides the component for faceted filtering of tasks in the table, allowing users to filter by multiple criteria.
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import * as React from "react";
 import { Check, PlusCircle } from "lucide-react";
