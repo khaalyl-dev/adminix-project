@@ -1,8 +1,0 @@
-{
-  "devDependencies": {
-    "@types/date-fns": "^2.5.3"
-  },
-  "dependencies": {
-    "googleapis": "^154.0.0"
-  }
-}

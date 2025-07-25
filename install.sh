@@ -17,9 +17,9 @@ else
 fi
 
 # Install client dependencies
-if [ -d "$SCRIPT_DIR/../client" ]; then
+if [ -d "$SCRIPT_DIR/client" ]; then
   echo "Installing client dependencies..."
-  cd "$SCRIPT_DIR/../client"
+  cd "$SCRIPT_DIR/client"
   npm install
 else
   echo "Client directory not found!"
