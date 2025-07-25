@@ -2,14 +2,15 @@ import {ErrorRequestHandler, Response} from "express";
 import { HTTPSTATUS } from "../config/http.config";
 import { Http2ServerRequest } from "http2";
 import { AppError } from "../utils/app.error";
-import { z, ZodError } from "zod";
+import { z } from "zod";
+import { ZodError } from "zod";
 import { ErrorCodeEnum } from "../enums/error-code.enum";
 
 const formatZodError = (res:Response, error: z.ZodError) => {
-    const errors= error?.issues?.map((err)=>({
-        field:err.path.join("."),
-        message: err.message, 
-    })); 
+    const errors = error?.issues?.map((err: z.ZodIssue) => ({
+        field: err.path.join("."),
+        message: err.message,
+    }));
     return res.status(HTTPSTATUS.BAD_REQUEST).json({
       message:"Validation failed",
       errors:errors,
