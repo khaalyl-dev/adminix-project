@@ -21,6 +21,9 @@ if [ -d "$SCRIPT_DIR/backend" ]; then
   echo "Installing backend dependencies..."
   cd "$SCRIPT_DIR/backend"
   npm install
+  echo "Reinstall..."
+  rm -rf node_modules package-lock.json
+  npm install
 else
   echo "Backend directory not found!"
   exit 1
