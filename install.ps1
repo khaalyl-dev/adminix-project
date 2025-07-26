@@ -19,7 +19,7 @@ if (Test-Path $backendPath) {
 }
 
 # Install client dependencies
-$clientPath = Join-Path $SCRIPT_DIR "..\client"
+ $clientPath = Join-Path $SCRIPT_DIR "client"
 if (Test-Path $clientPath) {
     Write-Host "Installing client dependencies..."
     Push-Location $clientPath

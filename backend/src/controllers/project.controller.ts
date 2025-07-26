@@ -17,9 +17,9 @@ import path from 'path';
 import { Request as ExpressRequest } from 'express';
 import { FileFilterCallback } from 'multer';
 import mongoose from 'mongoose';
-import { GridFSBucket } from 'mongodb';
+// Use GridFSBucket and ObjectId from mongoose.mongo to avoid type conflicts
+const { GridFSBucket, ObjectId } = mongoose.mongo;
 import { config } from '../config/app.config';
-import { ObjectId } from 'mongodb';
 import stream from 'stream';
 // Use Express.Multer.File for file type
 
@@ -335,7 +335,7 @@ export const downloadProjectFileController = asyncHandler(
     const { fileId } = req.params;
     const db = mongoose.connection.db;
     if (!db) return res.status(500).json({ message: 'Database not initialized' });
-    const bucket = new mongoose.mongo.GridFSBucket(db, { bucketName: 'uploads' });
+    const bucket = new GridFSBucket(db, { bucketName: 'uploads' });
     try {
       const _id = new ObjectId(fileId);
       // Find the file metadata to get the original name
@@ -357,7 +357,7 @@ export const deleteProjectFileController = asyncHandler(
     const { fileId } = req.params;
     const db = mongoose.connection.db;
     if (!db) return res.status(500).json({ message: 'Database not initialized' });
-    const bucket = new mongoose.mongo.GridFSBucket(db, { bucketName: 'uploads' });
+    const bucket = new GridFSBucket(db, { bucketName: 'uploads' });
     try {
       const _id = new ObjectId(fileId);
       // Delete from GridFS
