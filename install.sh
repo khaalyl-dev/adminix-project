@@ -21,7 +21,7 @@ if [ -d "$SCRIPT_DIR/backend" ]; then
   echo "Installing backend dependencies..."
   cd "$SCRIPT_DIR/backend"
   npm install
-  echo "Reinstall..."
+  echo "Reinstalling backend dependencies..."
   rm -rf node_modules package-lock.json
   npm install
 else
@@ -32,3 +32,8 @@ fi
 
 
 echo "All dependencies installed successfully!"
+echo "Starting backend dev server in a new terminal..."
+(cd "$SCRIPT_DIR/backend" && nohup npm run dev > backend-dev.log 2>&1 &)
+
+echo "Starting client dev server in a new terminal..."
+(cd "$SCRIPT_DIR/client" && nohup npm run dev > client-dev.log 2>&1 &)
