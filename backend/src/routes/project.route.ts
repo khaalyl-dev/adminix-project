@@ -18,11 +18,10 @@ import { createProjectController,
 import path from "path";
 import fs from "fs";
 
-
 const projectRoutes = Router(); 
 
+// Project CRUD routes
 projectRoutes.post("/workspace/:workspaceId/create", createProjectController);
-
 
 projectRoutes.put(
   "/:id/workspace/:workspaceId/update",
@@ -33,16 +32,29 @@ projectRoutes.delete(
   "/:id/workspace/:workspaceId/delete",
   deleteProjectController
 );
+
 projectRoutes.get(
     "/workspace/:workspaceId/all",
-    getAllProjectsInWorkspaceController); 
+    getAllProjectsInWorkspaceController
+); 
+
 projectRoutes.get(
     "/:id/workspace/:workspaceId/analytics",
-    getProjectAnalyticsController);   
+    getProjectAnalyticsController
+);   
+
+projectRoutes.get(
+    "/:id/workspace/:workspaceId",
+    getProjectByIdAndWorkspaceIdController
+);     
+
+// Activity routes
 projectRoutes.get('/:id/activities', getProjectActivitiesController);
 projectRoutes.post('/:id/activities', postProjectActivityController);
 projectRoutes.patch('/activities/:activityId/pin', pinProjectActivityController);
 projectRoutes.patch('/activities/:activityId/unpin', unpinProjectActivityController);
+
+// File routes
 projectRoutes.get('/:id/files', getProjectFilesController);
 projectRoutes.post('/:id/files', upload.single('file'), uploadProjectFileController);
 
@@ -50,10 +62,4 @@ projectRoutes.post('/:id/files', upload.single('file'), uploadProjectFileControl
 projectRoutes.get('/files/download/:fileId', downloadProjectFileController);
 projectRoutes.delete('/files/:fileId', deleteProjectFileController);
 
-projectRoutes.get(
-    "/:id/workspace/:workspaceId",
-    getProjectByIdAndWorkspaceIdController);     
-
-
-
-export default projectRoutes ; 
+export default projectRoutes;

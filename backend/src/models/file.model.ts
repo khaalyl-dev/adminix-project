@@ -7,6 +7,9 @@ export interface FileDocument extends Document {
   name: string;
   fileId: mongoose.Types.ObjectId;
   url?: string;
+  size?: number; // File size in bytes
+  mimeType?: string; // MIME type of the file
+  originalName?: string; // Original filename from upload
   uploadedAt: Date;
 }
 
@@ -16,7 +19,15 @@ const FileSchema = new Schema<FileDocument>({
   name: { type: String, required: true },
   fileId: { type: Schema.Types.ObjectId, required: true },
   url: { type: String }, // optional, for backward compatibility
+  size: { type: Number }, // File size in bytes
+  mimeType: { type: String }, // MIME type
+  originalName: { type: String }, // Original filename
   uploadedAt: { type: Date, default: Date.now },
 });
 
-export default mongoose.model<FileDocument>('File', FileSchema); 
+// Add indexes for better performance
+FileSchema.index({ projectId: 1, uploadedAt: -1 });
+FileSchema.index({ userId: 1 });
+FileSchema.index({ fileId: 1 }, { unique: true });
+
+export default mongoose.model<FileDocument>('File', FileSchema);

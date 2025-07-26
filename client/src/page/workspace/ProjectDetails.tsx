@@ -283,8 +283,7 @@ function ActivityLogTab({ onPinChange }: { onPinChange?: () => void }) {
                               <button className="ml-2 text-gray-400 hover:text-yellow-500" title="Pin" onClick={() => handlePin(a._id)}><Pin className="w-4 h-4" /></button>
                             )}
                           </div>
-                          <div className="text-gray-800 text-sm whitespace-pre-line">
-                            {highlightMentions(formatMeetingTime(a.message))}
+                          <div className="text-gray-800 text-sm whitespace-pre-line" dangerouslySetInnerHTML={{__html: highlightMentions(formatMeetingTime(a.message))}}>
                           </div>
                         </div>
                       </div>
@@ -300,7 +299,7 @@ function ActivityLogTab({ onPinChange }: { onPinChange?: () => void }) {
   );
 }
 
-function highlightMentions(text: string, members: any[], tasks: any[]) {
+function highlightMentionsWithMembers(text: string, members: any[], tasks: any[]) {
   let result = text;
   members.forEach((m: any) => {
     const regex = new RegExp(`@${m.userId.name}`, 'g');
@@ -467,7 +466,7 @@ function ProjectSidebar({ project, members, files, pinned, tasks, onFileUpload }
               {pinned.map((item: any) => (
                 <li key={item._id} className="flex items-center gap-2 text-xs text-gray-700">
                   <Pin className="w-4 h-4 text-yellow-400" />
-                  <span>{highlightMentions(formatMeetingTime(item.message), members, tasks)}</span>
+                  <span dangerouslySetInnerHTML={{__html: highlightMentionsWithMembers(formatMeetingTime(item.message), members, tasks)}}></span>
                 </li>
               ))}
             </ul>

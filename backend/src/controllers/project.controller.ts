@@ -17,17 +17,20 @@ import path from 'path';
 import { Request as ExpressRequest } from 'express';
 import { FileFilterCallback } from 'multer';
 import mongoose from 'mongoose';
+import { Readable } from 'stream';
+
 // Use GridFSBucket and ObjectId from mongoose.mongo to avoid type conflicts
 const { GridFSBucket, ObjectId } = mongoose.mongo;
 import { config } from '../config/app.config';
-import stream from 'stream';
-// Use Express.Multer.File for file type
-
 
 // Use plain multer with memory storage
-const upload = multer({ storage: multer.memoryStorage() });
+const upload = multer({ 
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 50 * 1024 * 1024, // 50MB limit
+  }
+});
 export { upload };
-
 
 export const createProjectController = asyncHandler(
   async (req: Request, res: Response) => {
@@ -112,7 +115,6 @@ export const getProjectByIdAndWorkspaceIdController = asyncHandler(
     });
   }
 );
-
 
 export const getProjectAnalyticsController = asyncHandler (
   async(req: Request, res: Response) => { 
@@ -280,33 +282,71 @@ export const uploadProjectFileController = asyncHandler(
     const userId = req.user?._id;
     const file = req.file;
     const name = req.body.name || (file ? file.originalname : undefined);
-    if (!file || !name) return res.status(400).json({ message: 'File and name are required' });
 
-    // Stream file buffer to GridFS
-    const db = mongoose.connection.db;
-    if (!db) return res.status(500).json({ message: 'Database not initialized' });
-    const bucket = new GridFSBucket(db, { bucketName: 'uploads' });
-    const uploadStream = bucket.openUploadStream(file.originalname, {
-      contentType: file.mimetype,
-      metadata: { projectId }
-    });
-    uploadStream.end(file.buffer);
-    uploadStream.on('error', (err) => {
-      return res.status(500).json({ message: 'Error uploading file', error: err.message });
-    });
-    uploadStream.on('finish', async () => {
+    if (!file || !name) {
+      return res.status(400).json({ message: 'File and name are required' });
+    }
+
+    try {
+      // Get database connection
+      const db = mongoose.connection.db;
+      if (!db) {
+        return res.status(500).json({ message: 'Database not initialized' });
+      }
+
+      const bucket = new GridFSBucket(db, { bucketName: 'uploads' });
+
+      // Use a Promise to handle the async GridFS upload
+      const uploadFile = new Promise<mongoose.Types.ObjectId>((resolve, reject) => {
+        // Create upload stream with proper metadata
+        const uploadStream = bucket.openUploadStream(file.originalname, {
+          contentType: file.mimetype,
+          metadata: { 
+            projectId,
+            userId,
+            originalName: file.originalname,
+            size: file.size,
+            uploadedAt: new Date()
+          }
+        });
+
+        // Handle upload errors
+        uploadStream.on('error', (err) => {
+          console.error('GridFS upload error:', err);
+          reject(err);
+        });
+
+        // Handle successful upload
+        uploadStream.on('finish', () => {
+          console.log('File uploaded successfully to GridFS:', uploadStream.id);
+          resolve(uploadStream.id);
+        });
+
+        // Write the buffer directly to the upload stream
+        uploadStream.end(file.buffer);
+      });
+
+      // Wait for the upload to complete
+      const fileId = await uploadFile;
+
+      // Save file metadata to File collection
       const savedFile = await File.create({
         projectId,
         userId,
         name,
-        fileId: uploadStream.id, // use the id from the stream
+        fileId: fileId,
+        size: file.size,
+        mimeType: file.mimetype,
+        originalName: file.originalname,
       });
-      // Fetch project and user to get workspaceId, project name, and uploader name
+
+      // Fetch project and user for notifications
       const projectModel = await (await import('../models/project.model')).default;
       const userModel = await (await import('../models/user.model')).default;
       const project = await projectModel.findById(projectId);
       const user = await userModel.findById(userId);
       const workspaceId = project?.workspace;
+
       // Create notification
       if (workspaceId) {
         const notification = await Notification.create({
@@ -317,37 +357,108 @@ export const uploadProjectFileController = asyncHandler(
         });
         io.to(workspaceId.toString()).emit('notification', notification);
       }
+
       // Create activity log
       await Activity.create({
         projectId,
         userId,
         type: 'file_upload',
         message: `File uploaded: ${name}`,
-        meta: { fileId: uploadStream.id, name },
+        meta: { fileId: fileId, name, size: file.size },
       });
-      res.status(201).json({ file: savedFile });
-    });
+
+      res.status(201).json({ 
+        file: savedFile,
+        message: 'File uploaded successfully'
+      });
+
+    } catch (err) {
+      console.error('Upload controller error:', err);
+      return res.status(500).json({ 
+        message: 'Internal server error', 
+        error: err instanceof Error ? err.message : 'Unknown error'
+      });
+    }
   }
 );
 
 export const downloadProjectFileController = asyncHandler(
   async (req: Request, res: Response) => {
     const { fileId } = req.params;
-    const db = mongoose.connection.db;
-    if (!db) return res.status(500).json({ message: 'Database not initialized' });
-    const bucket = new GridFSBucket(db, { bucketName: 'uploads' });
+
     try {
+      // Get database connection
+      const db = mongoose.connection.db;
+      if (!db) {
+        return res.status(500).json({ message: 'Database not initialized' });
+      }
+
+      const bucket = new GridFSBucket(db, { bucketName: 'uploads' });
       const _id = new ObjectId(fileId);
-      // Find the file metadata to get the original name
+
+      // Find the file metadata first
       const fileDoc = await File.findOne({ fileId: _id });
-      const filename = fileDoc?.name || 'downloaded-file';
-      const downloadStream = bucket.openDownloadStream(_id);
-      downloadStream.on('error', () => res.status(404).json({ message: 'File not found' }));
-      res.set('Content-Type', 'application/octet-stream');
-      res.set('Content-Disposition', `attachment; filename="${filename}"`);
-      downloadStream.pipe(res);
+      if (!fileDoc) {
+        return res.status(404).json({ message: 'File record not found' });
+      }
+
+      // Check if file exists in GridFS
+      const files = await bucket.find({ _id }).toArray();
+      if (files.length === 0) {
+        return res.status(404).json({ message: 'File not found in GridFS' });
+      }
+
+      const gridFile = files[0];
+      const filename = fileDoc.name || gridFile.filename || 'downloaded-file';
+      const contentType = gridFile.contentType || fileDoc.mimeType || 'application/octet-stream';
+
+      // Log file info for debugging
+      console.log('Downloading file:', {
+        filename,
+        contentType,
+        size: gridFile.length,
+        fileId: _id.toString()
+      });
+
+      // Set proper headers before starting the stream
+      res.setHeader('Content-Type', contentType);
+      res.setHeader('Content-Length', gridFile.length.toString());
+      res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(filename)}"`);
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+
+      // Create a promise to handle the download stream
+      const downloadFile = new Promise<void>((resolve, reject) => {
+        const downloadStream = bucket.openDownloadStream(_id);
+
+        downloadStream.on('error', (err) => {
+          console.error('Download stream error:', err);
+          reject(err);
+        });
+
+        downloadStream.on('end', () => {
+          console.log('File download completed successfully:', filename);
+          resolve();
+        });
+
+        // Pipe the download stream to response
+        downloadStream.pipe(res);
+      });
+
+      // Wait for download to complete
+      await downloadFile;
+
     } catch (err) {
-      res.status(400).json({ message: 'Invalid file ID' });
+      console.error('Download controller error:', err);
+      
+      // Only send error response if headers haven't been sent
+      if (!res.headersSent) {
+        return res.status(500).json({ 
+          message: 'Download failed',
+          error: err instanceof Error ? err.message : 'Unknown error'
+        });
+      }
     }
   }
 );
@@ -355,18 +466,42 @@ export const downloadProjectFileController = asyncHandler(
 export const deleteProjectFileController = asyncHandler(
   async (req: Request, res: Response) => {
     const { fileId } = req.params;
-    const db = mongoose.connection.db;
-    if (!db) return res.status(500).json({ message: 'Database not initialized' });
-    const bucket = new GridFSBucket(db, { bucketName: 'uploads' });
+
     try {
+      const db = mongoose.connection.db;
+      if (!db) {
+        return res.status(500).json({ message: 'Database not initialized' });
+      }
+
+      const bucket = new GridFSBucket(db, { bucketName: 'uploads' });
       const _id = new ObjectId(fileId);
+
+      // Check if file exists before deletion
+      const files = await bucket.find({ _id }).toArray();
+      if (files.length === 0) {
+        return res.status(404).json({ message: 'File not found in GridFS' });
+      }
+
       // Delete from GridFS
       await bucket.delete(_id);
+
       // Delete from File model
-      await File.findOneAndDelete({ fileId: _id });
-      res.status(200).json({ message: 'File deleted successfully' });
+      const deletedFile = await File.findOneAndDelete({ fileId: _id });
+      if (!deletedFile) {
+        console.warn('File deleted from GridFS but not found in File collection');
+      }
+
+      res.status(200).json({ 
+        message: 'File deleted successfully',
+        fileId: fileId
+      });
+
     } catch (err) {
-      res.status(400).json({ message: 'Failed to delete file', error: err instanceof Error ? err.message : err });
+      console.error('Delete controller error:', err);
+      return res.status(400).json({ 
+        message: 'Failed to delete file', 
+        error: err instanceof Error ? err.message : 'Unknown error'
+      });
     }
   }
 );

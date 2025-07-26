@@ -1,0 +1,7 @@
+{
+  "name": "adminixi-project",
+  "version": "1.0.0",
+  "scripts": {
+    "start-adminix": "code --command workbench.action.tasks.runTask --args 'Run Adminix Project'"
+  }
+}
