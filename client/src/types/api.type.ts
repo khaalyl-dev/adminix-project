@@ -224,8 +224,9 @@ export type CreateTaskPayloadType = {
     description: string;
     priority: TaskPriorityEnumType;
     status: TaskStatusEnumType;
-    assignedTo: string;
+    assignedTo: string | null;
     dueDate: string;
+    sprint?: string | null;
   };
 };
 
@@ -242,9 +243,36 @@ export type EditTaskPayloadType = {
     status: TaskStatusEnumType;
     assignedTo: string;
     dueDate: string;
+    sprint?: string;
   }>;
 };
 
+
+export type SprintType = {
+  _id: string;
+  name: string;
+  description?: string;
+  project: {
+    _id: string;
+    name: string;
+  };
+  workspace: {
+    _id: string;
+    name: string;
+  };
+  sprintNumber: number;
+  startDate?: string;
+  endDate?: string;
+  capacity: number;
+  status: 'PLANNED' | 'ACTIVE' | 'COMPLETED' | 'CANCELLED';
+  createdBy: {
+    _id: string;
+    name: string;
+    profilePicture: string | null;
+  };
+  createdAt?: string;
+  updatedAt?: string;
+};
 
 export type TaskType = {
   _id: string;
@@ -262,6 +290,17 @@ export type TaskType = {
     name: string;
     profilePicture: string | null;
   } | null;
+  sprint?: {
+    _id: string;
+    name: string;
+    sprintNumber: number;
+    status: string;
+  } | null;
+  // AI Prediction fields
+  aiComplexity?: number;
+  aiRisk?: number;
+  aiPriority?: number;
+  aiPredictionDate?: string;
   createdBy?: string;
   dueDate: string;
   taskCode: string;
@@ -277,6 +316,7 @@ export type AllTaskPayloadType = {
   status?: TaskStatusEnumType | null;
   assignedTo?: string | null;
   dueDate?: string | null;
+  sprintId?: string | null;
   pageNumber?: number | null;
   pageSize?: number | null;
 };

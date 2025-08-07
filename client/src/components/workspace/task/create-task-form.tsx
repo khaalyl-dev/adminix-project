@@ -40,6 +40,7 @@ import useWorkspaceId from "@/hooks/use-workspace-id";
 import { TaskPriorityEnum, TaskStatusEnum } from "@/constant";
 import useGetProjectsInWorkspaceQuery from "@/hooks/api/use-get-projects";
 import useGetWorkspaceMembers from "@/hooks/api/use-get-workspace-members";
+import useGetSprintsQuery from "@/hooks/api/use-get-sprints";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { createTaskMutationFn } from "@/lib/api";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -64,9 +65,15 @@ export default function CreateTaskForm(props: {
   });
 
   const { data: memberData } = useGetWorkspaceMembers(workspaceId);
+  const { data: sprintData } = useGetSprintsQuery({
+    workspaceId,
+    projectId: projectId || "",
+    skip: !projectId,
+  });
 
   const projects = data?.projects || [];
   const members = memberData?.members || [];
+  const sprints = sprintData?.sprints || [];
 
   //Workspace Projects
   const projectOptions = projects?.map((project) => {
@@ -101,6 +108,13 @@ export default function CreateTaskForm(props: {
     };
   });
 
+  // Sprint Options
+  const sprintOptions = sprints?.map((sprint) => ({
+    label: `Sprint ${sprint.sprintNumber}: ${sprint.name}`,
+    value: sprint._id,
+    sprint: sprint, // Include the full sprint object for date constraints
+  }));
+
   const formSchema = z.object({
     title: z.string().trim().min(1, {
       message: "Title is required",
@@ -124,6 +138,7 @@ export default function CreateTaskForm(props: {
     assignedTo: z.string().trim().min(1, {
       message: "AssignedTo is required",
     }),
+    sprint: z.string().trim().optional(),
     dueDate: z.date({
       required_error: "A date of birth is required.",
     }),
@@ -137,6 +152,8 @@ export default function CreateTaskForm(props: {
       projectId: projectId ? projectId : "",
     },
   });
+
+
 
   const taskStatusList = Object.values(TaskStatusEnum);
   const taskPriorityList = Object.values(TaskPriorityEnum); // ["LOW", "MEDIUM", "HIGH", "URGENT"]
@@ -152,6 +169,7 @@ export default function CreateTaskForm(props: {
       data: {
         ...values,
         dueDate: values.dueDate.toISOString(),
+        sprint: values.sprint || undefined,
       },
     };
 
@@ -365,19 +383,70 @@ export default function CreateTaskForm(props: {
                           mode="single"
                           selected={field.value}
                           onSelect={field.onChange}
-                          disabled={
-                            (date) =>
-                              date <
-                                new Date(new Date().setHours(0, 0, 0, 0)) || // Disable past dates
-                              date > new Date("2100-12-31") //Prevent selection beyond a far future date
-                          }
+                          disabled={(date) => {
+                            const today = new Date(new Date().setHours(0, 0, 0, 0));
+                            const selectedSprintId = form.watch('sprint');
+                            const selectedSprint = selectedSprintId ? 
+                              sprints.find(s => s._id === selectedSprintId) : null;
+                            
+                            // If a sprint is selected, constrain to sprint date range
+                            if (selectedSprint) {
+                              const sprintStart = selectedSprint.startDate ? 
+                                new Date(selectedSprint.startDate) : today;
+                              const sprintEnd = selectedSprint.endDate ? 
+                                new Date(selectedSprint.endDate) : new Date("2100-12-31");
+                              
+                              return date < sprintStart || date > sprintEnd;
+                            }
+                            
+                            // Default constraints (no sprint selected)
+                            return date < today || date > new Date("2100-12-31");
+                          }}
                           initialFocus
-                          defaultMonth={new Date()}
-                          fromMonth={new Date()}
+                          defaultMonth={(() => {
+                            const selectedSprintId = form.watch('sprint');
+                            const selectedSprint = selectedSprintId ? 
+                              sprints.find(s => s._id === selectedSprintId) : null;
+                            return selectedSprint?.startDate ? 
+                              new Date(selectedSprint.startDate) : new Date();
+                          })()}
+                          fromMonth={(() => {
+                            const selectedSprintId = form.watch('sprint');
+                            const selectedSprint = selectedSprintId ? 
+                              sprints.find(s => s._id === selectedSprintId) : null;
+                            return selectedSprint?.startDate ? 
+                              new Date(selectedSprint.startDate) : new Date();
+                          })()}
+                          toMonth={(() => {
+                            const selectedSprintId = form.watch('sprint');
+                            const selectedSprint = selectedSprintId ? 
+                              sprints.find(s => s._id === selectedSprintId) : null;
+                            return selectedSprint?.endDate ? 
+                              new Date(selectedSprint.endDate) : new Date("2100-12-31");
+                          })()}
                         />
                       </PopoverContent>
                     </Popover>
                     <FormMessage />
+                    {form.watch('sprint') && (() => {
+                      const selectedSprintId = form.watch('sprint');
+                      const selectedSprint = selectedSprintId ? 
+                        sprints.find(s => s._id === selectedSprintId) : null;
+                      if (selectedSprint?.startDate || selectedSprint?.endDate) {
+                        return (
+                          <p className="text-xs text-blue-600 mt-1">
+                            Due date will be constrained to sprint period: {
+                              selectedSprint.startDate ? 
+                                format(new Date(selectedSprint.startDate), 'MMM dd') : 'Start'
+                            } - {
+                              selectedSprint.endDate ? 
+                                format(new Date(selectedSprint.endDate), 'MMM dd') : 'End'
+                            }
+                          </p>
+                        );
+                      }
+                      return null;
+                    })()}
                   </FormItem>
                 )}
               />
@@ -456,6 +525,45 @@ export default function CreateTaskForm(props: {
                 )}
               />
             </div>
+
+            {/* {Sprint} */}
+            {projectId && (
+              <div>
+                <FormField
+                  control={form.control}
+                  name="sprint"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Sprint</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a sprint (optional)" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <div className="w-full max-h-[200px] overflow-y-auto scrollbar">
+                            {sprintOptions?.map((sprint) => (
+                              <SelectItem
+                                className="cursor-pointer"
+                                key={sprint.value}
+                                value={sprint.value}
+                              >
+                                {sprint.label}
+                              </SelectItem>
+                            ))}
+                          </div>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            )}
 
             <Button
               className="flex place-self-end  h-[40px] text-white font-semibold"

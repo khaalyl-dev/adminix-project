@@ -5,7 +5,7 @@ import { TaskPriorityEnum, TaskStatusEnum } from "../enums/task.enum";
 export const titleSchema = z.string().trim().min(1).max(255);
 export const descriptionSchema = z.string().trim().optional();
 
-export const assignedToSchema = z.string().trim().min(1).nullable().optional();
+export const assignedToSchema = z.string().trim().min(1).nullable().optional().or(z.literal(''));
 
 export const prioritySchema = z.enum(
   Object.values(TaskPriorityEnum) as [string, ...string[]]
@@ -28,6 +28,8 @@ export const dueDateSchema = z
     }
   );
 
+export const sprintSchema = z.string().trim().min(1).nullable().optional();
+
 export const taskIdSchema = z.string().trim().min(1);
 
 export const createTaskSchema = z.object({
@@ -37,6 +39,7 @@ export const createTaskSchema = z.object({
   status: statusSchema,
   assignedTo: assignedToSchema,
   dueDate: dueDateSchema,
+  sprint: sprintSchema,
 });
 
 export const updateTaskSchema = z.object({
@@ -46,4 +49,5 @@ export const updateTaskSchema = z.object({
   status: statusSchema,
   assignedTo: assignedToSchema,
   dueDate: dueDateSchema,
+  sprint: sprintSchema,
 });

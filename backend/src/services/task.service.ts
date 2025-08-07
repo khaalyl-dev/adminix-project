@@ -18,6 +18,7 @@ export const createTaskService = async (
     status: string;
     assignedTo?: string | null;
     dueDate?: string;
+    sprint?: string | null;
     }
 ) => {
 
@@ -26,7 +27,8 @@ export const createTaskService = async (
          priority,
           status,
            assignedTo,
-            dueDate, } = body; 
+            dueDate,
+            sprint, } = body; 
 
     const project = await ProjectModel.findById(projectId); 
     if (!project || project.workspace.toString() !== workspaceId.toString()) {
@@ -45,6 +47,24 @@ export const createTaskService = async (
     }
   }
 
+  // Validate sprint date constraints if sprint is assigned
+  if (sprint && dueDate) {
+    const SprintModel = (await import("../models/sprint.model")).default;
+    const sprintData = await SprintModel.findById(sprint);
+    
+    if (sprintData) {
+      const taskDueDate = new Date(dueDate);
+      const sprintStart = sprintData.startDate ? new Date(sprintData.startDate) : new Date();
+      const sprintEnd = sprintData.endDate ? new Date(sprintData.endDate) : new Date("2100-12-31");
+      
+      if (taskDueDate < sprintStart || taskDueDate > sprintEnd) {
+        throw new BadRequestException(
+          `Task due date must be within sprint period: ${sprintStart.toDateString()} to ${sprintEnd.toDateString()}`
+        );
+      }
+    }
+  }
+
   const task = new TaskModel({
     title, 
     description, 
@@ -54,7 +74,8 @@ export const createTaskService = async (
     createdBy: userId,
     workspace: workspaceId,
     project: projectId,
-    dueDate, 
+    dueDate,
+    sprint,
   });
 
   await task.save(); 
@@ -64,7 +85,7 @@ export const createTaskService = async (
 }; 
 
 export const updateTaskService = async (
- workspaceId: string,
+  workspaceId: string,
   projectId: string,
   taskId: string,
   body: {
@@ -74,6 +95,70 @@ export const updateTaskService = async (
     status: string;
     assignedTo?: string | null;
     dueDate?: string;
+    sprint?: string | null;
+    aiComplexity?: number;
+    aiRisk?: number;
+    aiPriority?: number;
+  }
+) => {
+  const project = await ProjectModel.findById(projectId);
+
+  if (!project || project.workspace.toString() !== workspaceId.toString()) {
+    throw new NotFoundException(
+      "Project not found or does not belong to this workspace"
+    );
+  }
+
+  const task = await TaskModel.findById(taskId);
+
+  if (!task || task.project.toString() !== projectId.toString()) {
+    throw new NotFoundException(
+      "This task does not exist or is not associated with this project"
+    );
+  }
+
+  // Validate sprint date constraints if sprint is assigned
+  if (body.sprint && body.dueDate) {
+    const SprintModel = (await import("../models/sprint.model")).default;
+    const sprintData = await SprintModel.findById(body.sprint);
+    
+    if (sprintData) {
+      const taskDueDate = new Date(body.dueDate);
+      const sprintStart = sprintData.startDate ? new Date(sprintData.startDate) : new Date();
+      const sprintEnd = sprintData.endDate ? new Date(sprintData.endDate) : new Date("2100-12-31");
+      
+      if (taskDueDate < sprintStart || taskDueDate > sprintEnd) {
+        throw new BadRequestException(
+          `Task due date must be within sprint period: ${sprintStart.toDateString()} to ${sprintEnd.toDateString()}`
+        );
+      }
+    }
+  }
+
+  const updatedTask = await TaskModel.findByIdAndUpdate(
+    taskId,
+    {
+      ...body,
+    },
+    { new: true }
+  );
+
+  if (!updatedTask) {
+    throw new BadRequestException("Failed to update task");
+  }
+
+  return { updatedTask };
+
+};
+
+export const updateTaskAIPredictionsService = async (
+  workspaceId: string,
+  projectId: string,
+  taskId: string,
+  predictions: {
+    aiComplexity: number;
+    aiRisk: number;
+    aiPriority: number;
   }
 ) => {
   const project = await ProjectModel.findById(projectId);
@@ -95,17 +180,19 @@ export const updateTaskService = async (
   const updatedTask = await TaskModel.findByIdAndUpdate(
     taskId,
     {
-      ...body,
+      aiComplexity: predictions.aiComplexity,
+      aiRisk: predictions.aiRisk,
+      aiPriority: predictions.aiPriority,
+      aiPredictionDate: new Date(),
     },
     { new: true }
   );
 
   if (!updatedTask) {
-    throw new BadRequestException("Failed to update task");
+    throw new BadRequestException("Failed to update task AI predictions");
   }
 
   return { updatedTask };
-
 };
 
 export const getAllTasksService = async(
@@ -117,6 +204,7 @@ export const getAllTasksService = async(
     assignedTo?: string[];
     keyword?: string;
     dueDate?: string;
+    sprintId?: string;
   }, 
     pagination: {
     pageSize: number;
@@ -152,6 +240,10 @@ const query: Record<string, any> = {
       $eq: new Date(filters.dueDate),
     };
   }
+
+  if (filters.sprintId) {
+    query.sprint = filters.sprintId;
+  }
    // pagination LOGIC  
    const {pageSize, pageNumber} = pagination
    const skip = (pageNumber -1) * pageSize;
@@ -162,7 +254,8 @@ const query: Record<string, any> = {
     .limit(pageSize)
     .sort({createdAt: -1})
     .populate("assignedTo","_id name profilePicture -password")
-    .populate("project","_id emoji name"), 
+    .populate("project","_id emoji name")
+    .populate("sprint","_id name sprintNumber status"), 
     TaskModel.countDocuments(query),
    ]); 
 
@@ -199,7 +292,8 @@ taskId: string
     _id: taskId,
     workspace: workspaceId,
     project: projectId,
-  }).populate("assignedTo", "_id name profilePicture -password");
+  }).populate("assignedTo", "_id name profilePicture -password")
+    .populate("sprint", "_id name sprintNumber status");
 
   if (!task) {
     throw new NotFoundException("Task not found.");
@@ -223,4 +317,50 @@ export const deleteTaskService = async (
   }
 
   return;
+};
+
+export const getTasksBySprintService = async (
+  workspaceId: string,
+  projectId: string,
+  sprintId: string
+) => {
+  const project = await ProjectModel.findById(projectId);
+
+  if (!project || project.workspace.toString() !== workspaceId.toString()) {
+    throw new NotFoundException(
+      "Project not found or does not belong to this workspace"
+    );
+  }
+
+  // Verify sprint exists and belongs to the project
+  const SprintModel = (await import("../models/sprint.model")).default;
+  const sprint = await SprintModel.findOne({
+    _id: sprintId,
+    project: projectId,
+  });
+
+  if (!sprint) {
+    throw new NotFoundException("Sprint not found or does not belong to this project");
+  }
+
+  const tasks = await TaskModel.find({
+    workspace: workspaceId,
+    project: projectId,
+    sprint: sprintId,
+  })
+  .populate("assignedTo", "_id name profilePicture -password")
+  .populate("project", "_id emoji name")
+  .populate("sprint", "_id name sprintNumber status")
+  .sort({ createdAt: -1 });
+
+  const totalCount = await TaskModel.countDocuments({
+    workspace: workspaceId,
+    project: projectId,
+    sprint: sprintId,
+  });
+
+  return {
+    tasks,
+    totalCount,
+  };
 }; 

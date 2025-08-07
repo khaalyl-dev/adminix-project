@@ -1,10 +1,11 @@
 // all-members.tsx
 // This file provides the component for displaying all members of a workspace, including member details, roles, and management actions.
 // Each major component and function is commented inline for clarity.
-import { ChevronDown, Loader } from "lucide-react";
+import { ChevronDown, Loader, FileText } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 
 import {
   Command,
@@ -23,6 +24,7 @@ import { getAvatarColor, getAvatarFallbackText } from "@/lib/helper";
 import { useAuthContext } from "@/context/auth-provider";
 import useWorkspaceId from "@/hooks/use-workspace-id";
 import useGetWorkspaceMembers from "@/hooks/api/use-get-workspace-members";
+import useGetCSVWorkers from "@/hooks/api/use-get-csv-workers";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { changeWorkspaceMemberRoleMutationFn } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
@@ -36,8 +38,10 @@ const AllMembers = () => {
   const workspaceId = useWorkspaceId();
 
   const { data, isPending } = useGetWorkspaceMembers(workspaceId);
+  const { data: csvWorkersData, isPending: isCSVWorkersPending } = useGetCSVWorkers(workspaceId);
   const members = data?.members || [];
   const roles = data?.roles || [];
+  const csvWorkers = csvWorkersData?.csvWorkers || [];
 
   const { mutate, isPending: isLoading } = useMutation({
     mutationFn: changeWorkspaceMemberRoleMutationFn,
@@ -75,10 +79,11 @@ const AllMembers = () => {
 
   return (
     <div className="grid gap-6 pt-2">
-      {isPending ? (
+      {isPending || isCSVWorkersPending ? (
         <Loader className="w-8 h-8 animate-spin place-self-center flex" />
       ) : null}
 
+      {/* Regular Members */}
       {members?.map((member) => {
         const name = member.userId?.name;
         const initials = getAvatarFallbackText(name);
@@ -175,6 +180,43 @@ const AllMembers = () => {
           </div>
         );
       })}
+
+      {/* CSV Workers */}
+      {csvWorkers.length > 0 && (
+        <div className="space-y-4">
+          <div className="flex items-center gap-2">
+            <FileText className="w-4 h-4 text-muted-foreground" />
+            <h3 className="text-sm font-medium text-muted-foreground">CSV Workers</h3>
+          </div>
+          {csvWorkers.map((worker) => (
+            <div key={worker._id} className="flex items-center justify-between space-x-4">
+              <div className="flex items-center space-x-4">
+                <Avatar className="h-8 w-8">
+                  <AvatarFallback className="bg-muted">
+                    {getAvatarFallbackText(worker.name)}
+                  </AvatarFallback>
+                </Avatar>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-medium leading-none">{worker.name}</p>
+                    <Badge variant="secondary" className="text-xs">
+                      CSV Worker
+                    </Badge>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    {worker.role} • {worker.technologies.length} technologies
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="text-xs">
+                  {worker.source}
+                </Badge>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };

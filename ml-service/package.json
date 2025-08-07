@@ -1,0 +1,19 @@
+{
+  "name": "adminix-ml-service",
+  "version": "1.0.0",
+  "description": "ML-powered task prediction and assignment service for AdminiX dashboard",
+  "main": "start.py",
+  "scripts": {
+    "start": "python start.py",
+    "dev": "python start.py",
+    "install": "pip install -r requirements.txt",
+    "train": "python -c \"from ml import train_models; train_models()\"",
+    "test": "python -c \"import api; print('ML Service modules loaded successfully')\""
+  },
+  "keywords": ["ml", "ai", "task-prediction", "fastapi", "adminix"],
+  "author": "AI Team - Digixi",
+  "license": "MIT",
+  "engines": {
+    "python": ">=3.8"
+  }
+} 

@@ -14,6 +14,12 @@ export interface TaskDocument extends Document {
     assignedTo: mongoose.Types.ObjectId | null; 
     createdBy: mongoose.Types.ObjectId; 
     dueDate: Date | null; 
+    sprint: mongoose.Types.ObjectId | null; // Optional sprint association
+    // AI Prediction fields
+    aiComplexity?: number;
+    aiRisk?: number;
+    aiPriority?: number;
+    aiPredictionDate?: Date;
     createdAt: Date; 
     updatedAt: Date; 
 }
@@ -67,6 +73,34 @@ const taskSchema = new Schema<TaskDocument>({
     dueDate : {
       type: Date, 
       default: null, 
+    },
+    sprint: {
+      type: Schema.Types.ObjectId,
+      ref: "Sprint",
+      default: null,
+    },
+    // AI Prediction fields
+    aiComplexity: {
+      type: Number,
+      min: 0,
+      max: 10,
+      default: null,
+    },
+    aiRisk: {
+      type: Number,
+      min: 0,
+      max: 10,
+      default: null,
+    },
+    aiPriority: {
+      type: Number,
+      min: 0,
+      max: 10,
+      default: null,
+    },
+    aiPredictionDate: {
+      type: Date,
+      default: null,
     },
   },
  {

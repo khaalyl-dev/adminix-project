@@ -134,6 +134,35 @@ export const getColumns = (projectId?: string): ColumnDef<TaskType>[] => {
         );
       },
     },
+                    {
+                  accessorKey: "sprint",
+                  header: ({ column }) => (
+                    <DataTableColumnHeader column={column} title="Sprint" />
+                  ),
+                  cell: ({ row }) => {
+                    const sprint = row.original.sprint;
+
+                    if (!sprint) {
+                      return (
+                        <span className="text-sm text-gray-400 italic">
+                          No Sprint
+                        </span>
+                      );
+                    }
+
+                    return (
+                      <div className="flex items-center gap-1">
+                        <Badge variant="outline" className="text-xs">
+                          Sprint {sprint.sprintNumber}
+                        </Badge>
+                        <span className="block text-sm font-medium truncate max-w-[120px]">
+                          {sprint.name}
+                        </span>
+                      </div>
+                    );
+                  },
+                },
+
     {
       accessorKey: "status",
       header: ({ column }) => (

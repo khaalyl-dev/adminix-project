@@ -33,6 +33,7 @@ import { Calendar } from "@/components/ui/calendar";
 import useWorkspaceId from "@/hooks/use-workspace-id";
 import { TaskPriorityEnum, TaskStatusEnum } from "@/constant";
 import useGetWorkspaceMembers from "@/hooks/api/use-get-workspace-members";
+import useGetSprintsQuery from "@/hooks/api/use-get-sprints";
 import { editTaskMutationFn } from "@/lib/api";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/hooks/use-toast";
@@ -47,7 +48,13 @@ export default function EditTaskForm({ task, onClose }: { task: TaskType; onClos
   });
 
   const { data: memberData } = useGetWorkspaceMembers(workspaceId);
+  const { data: sprintData } = useGetSprintsQuery({
+    workspaceId,
+    projectId: task.project?._id || "",
+    skip: !task.project?._id,
+  });
   const members = memberData?.members || [];
+  const sprints = sprintData?.sprints || [];
 
   // Members Dropdown Options
   const membersOptions = members.map((member) => ({
@@ -66,12 +73,20 @@ export default function EditTaskForm({ task, onClose }: { task: TaskType; onClos
     value: priority,
   }));
 
+  // Sprint Options
+  const sprintOptions = sprints.map((sprint) => ({
+    label: `Sprint ${sprint.sprintNumber}: ${sprint.name}`,
+    value: sprint._id,
+    sprint: sprint, // Include the full sprint object for date constraints
+  }));
+
   const formSchema = z.object({
     title: z.string().trim().min(1, { message: "Title is required" }),
     description: z.string().trim(),
     status: z.enum(Object.values(TaskStatusEnum) as [keyof typeof TaskStatusEnum]),
     priority: z.enum(Object.values(TaskPriorityEnum) as [keyof typeof TaskPriorityEnum]),
     assignedTo: z.string().trim().min(1, { message: "AssignedTo is required" }),
+    sprint: z.string().trim().optional(),
     dueDate: z.date({ required_error: "A due date is required." }),
   });
 
@@ -83,6 +98,7 @@ export default function EditTaskForm({ task, onClose }: { task: TaskType; onClos
       status: task?.status ?? "TODO",
       priority: task?.priority ?? "MEDIUM",
       assignedTo: task.assignedTo?._id ?? "",
+      sprint: task.sprint?._id ?? "",
       dueDate: task?.dueDate ? new Date(task.dueDate) : new Date(),
     },
   });
@@ -97,6 +113,7 @@ export default function EditTaskForm({ task, onClose }: { task: TaskType; onClos
       data: {
         ...values,
         dueDate: values.dueDate.toISOString(),
+        sprint: values.sprint || undefined,
       },
     };
 
@@ -178,10 +195,74 @@ export default function EditTaskForm({ task, onClose }: { task: TaskType; onClos
                     </FormControl>
                   </PopoverTrigger>
                   <PopoverContent>
-                    <Calendar mode="single" selected={field.value} onSelect={field.onChange} />
+                    <Calendar 
+                      mode="single" 
+                      selected={field.value} 
+                      onSelect={field.onChange}
+                      disabled={(date) => {
+                        const today = new Date(new Date().setHours(0, 0, 0, 0));
+                        const selectedSprintId = form.watch('sprint');
+                        const selectedSprint = selectedSprintId ? 
+                          sprints.find(s => s._id === selectedSprintId) : null;
+                        
+                        // If a sprint is selected, constrain to sprint date range
+                        if (selectedSprint) {
+                          const sprintStart = selectedSprint.startDate ? 
+                            new Date(selectedSprint.startDate) : today;
+                          const sprintEnd = selectedSprint.endDate ? 
+                            new Date(selectedSprint.endDate) : new Date("2100-12-31");
+                          
+                          return date < sprintStart || date > sprintEnd;
+                        }
+                        
+                        // Default constraints (no sprint selected)
+                        return date < today || date > new Date("2100-12-31");
+                      }}
+                      initialFocus
+                      defaultMonth={(() => {
+                        const selectedSprintId = form.watch('sprint');
+                        const selectedSprint = selectedSprintId ? 
+                          sprints.find(s => s._id === selectedSprintId) : null;
+                        return selectedSprint?.startDate ? 
+                          new Date(selectedSprint.startDate) : new Date();
+                      })()}
+                      fromMonth={(() => {
+                        const selectedSprintId = form.watch('sprint');
+                        const selectedSprint = selectedSprintId ? 
+                          sprints.find(s => s._id === selectedSprintId) : null;
+                        return selectedSprint?.startDate ? 
+                          new Date(selectedSprint.startDate) : new Date();
+                      })()}
+                      toMonth={(() => {
+                        const selectedSprintId = form.watch('sprint');
+                        const selectedSprint = selectedSprintId ? 
+                          sprints.find(s => s._id === selectedSprintId) : null;
+                        return selectedSprint?.endDate ? 
+                          new Date(selectedSprint.endDate) : new Date("2100-12-31");
+                      })()}
+                    />
                   </PopoverContent>
                 </Popover>
                 <FormMessage />
+                {form.watch('sprint') && (() => {
+                  const selectedSprintId = form.watch('sprint');
+                  const selectedSprint = selectedSprintId ? 
+                    sprints.find(s => s._id === selectedSprintId) : null;
+                  if (selectedSprint?.startDate || selectedSprint?.endDate) {
+                    return (
+                      <p className="text-xs text-blue-600 mt-1">
+                        Due date will be constrained to sprint period: {
+                          selectedSprint.startDate ? 
+                            format(new Date(selectedSprint.startDate), 'MMM dd') : 'Start'
+                        } - {
+                          selectedSprint.endDate ? 
+                            format(new Date(selectedSprint.endDate), 'MMM dd') : 'End'
+                        }
+                      </p>
+                    );
+                  }
+                  return null;
+                })()}
               </FormItem>
             )} />
 
@@ -211,6 +292,24 @@ export default function EditTaskForm({ task, onClose }: { task: TaskType; onClos
                     {priorityOptions.map((priority) => (
                       <SelectItem key={priority.value} value={priority.value}>{priority.label}</SelectItem>
                     ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )} />
+
+            {/* Sprint */}
+            <FormField control={form.control} name="sprint" render={({ field }) => (
+              <FormItem>
+                <FormLabel>Sprint</FormLabel>
+                <Select onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
+                  <FormControl><SelectTrigger><SelectValue placeholder="Select a sprint (optional)" /></SelectTrigger></FormControl>
+                  <SelectContent>
+                    <div className="w-full max-h-[200px] overflow-y-auto scrollbar">
+                      {sprintOptions.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                      ))}
+                    </div>
                   </SelectContent>
                 </Select>
                 <FormMessage />

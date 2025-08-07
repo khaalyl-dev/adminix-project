@@ -8,7 +8,7 @@ export const roleGuard = (
 )=> {
     const permissions = RolePermissions[role];
 
-    const hasPermission = requiredPermissions.every((permission)=>
+    const hasPermission = requiredPermissions.some((permission)=>
          permissions.includes(permission)
     ); 
     if(!hasPermission) {

@@ -17,6 +17,7 @@ import { getAllTasksQueryFn } from "@/lib/api";
 import { TaskType } from "@/types/api.type";
 import useGetProjectsInWorkspaceQuery from "@/hooks/api/use-get-projects";
 import useGetWorkspaceMembers from "@/hooks/api/use-get-workspace-members";
+import { useGetSprintsByProjectQuery } from "@/hooks/api/use-get-sprints-by-project";
 import { getAvatarColor, getAvatarFallbackText } from "@/lib/helper";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import TaskViewDialog from "./task-view-dialog";
@@ -59,6 +60,7 @@ const TaskTable = () => {
         status: filters.status,
         projectId: projectId || filters.projectId,
         assignedTo: filters.assigneeId,
+        sprintId: filters.sprintId,
         pageNumber,
         pageSize,
       }),
@@ -131,8 +133,16 @@ const DataTableFilterToolbar: FC<DataTableFilterToolbarProps> = ({
 
   const { data: memberData } = useGetWorkspaceMembers(workspaceId);
 
+  // Get sprints for the current project if projectId is available
+  const { data: sprintData } = useGetSprintsByProjectQuery({
+    workspaceId,
+    projectId: projectId || "",
+    enabled: !!projectId,
+  });
+
   const projects = data?.projects || [];
   const members = memberData?.members || [];
+  const sprints = sprintData?.sprints || [];
 
   //Workspace Projects
   const projectOptions = projects?.map((project) => {
@@ -164,6 +174,19 @@ const DataTableFilterToolbar: FC<DataTableFilterToolbarProps> = ({
         </div>
       ),
       value: member.userId._id,
+    };
+  });
+
+  // Sprint Options
+  const sprintOptions = sprints?.map((sprint) => {
+    return {
+      label: (
+        <div className="flex items-center gap-1">
+          <span className="text-xs font-medium">Sprint {sprint.sprintNumber}</span>
+          <span className="text-sm">{sprint.name}</span>
+        </div>
+      ),
+      value: sprint._id,
     };
   });
 
@@ -216,6 +239,18 @@ const DataTableFilterToolbar: FC<DataTableFilterToolbarProps> = ({
         onFilterChange={(values) => handleFilterChange("assigneeId", values)}
       />
 
+      {/* Sprint filter - only show if we have a projectId */}
+      {projectId && sprintOptions.length > 0 && (
+        <DataTableFacetedFilter
+          title="Sprint"
+          multiSelect={false}
+          options={sprintOptions}
+          disabled={isLoading}
+          selectedValues={filters.sprintId?.split(",") || []}
+          onFilterChange={(values) => handleFilterChange("sprintId", values)}
+        />
+      )}
+
       {!projectId && (
         <DataTableFacetedFilter
           title="Projects"
@@ -241,6 +276,7 @@ const DataTableFilterToolbar: FC<DataTableFilterToolbarProps> = ({
               priority: null,
               projectId: null,
               assigneeId: null,
+              sprintId: null,
             })
           }
         >

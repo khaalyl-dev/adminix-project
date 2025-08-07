@@ -8,6 +8,13 @@ import { getCurrentUserService } from "../services/user.service";
 export const getCurrentUserController = asyncHandler(
     async(req:Request, res:Response) => {
         const userId = req.user?._id; 
+        
+        if (!userId) {
+            return res.status(HTTPSTATUS.UNAUTHORIZED).json({
+                message: "User not authenticated",
+                error: "No user ID found in session"
+            });
+        }
 
         const {user} = await getCurrentUserService(userId); 
 

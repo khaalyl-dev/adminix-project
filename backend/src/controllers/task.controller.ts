@@ -3,12 +3,13 @@ import { asyncHandler } from "../middlewares/asyncHandler.middleware";
 import { Request ,  Response, } from "express";
 import { projectIdSchema } from "../validation/project.validation";
 import { workspaceIdSchema } from "../validation/workspace.validation";
+import { sprintIdSchema } from "../validation/sprint.validation";
 import { roleGuard } from "../utils/roleGuard";
 import { HTTPSTATUS } from "../config/http.config";
 import { Permissions } from "../enums/role.enum";
 import { createTaskSchema, taskIdSchema, updateTaskSchema } from "../validation/task.validation";
 import { getMemberRoleInWorkspace } from "../services/member.service";
-import { createTaskService, deleteTaskService, getAllTasksService, getTaskByIdService, updateTaskService } from "../services/task.service";
+import { createTaskService, deleteTaskService, getAllTasksService, getTaskByIdService, updateTaskService, updateTaskAIPredictionsService, getTasksBySprintService } from "../services/task.service";
 import Notification from "../models/notification.model";
 import { io } from "../index";
 import Comment from '../models/comment.model';
@@ -145,6 +146,7 @@ export const getAllTasksController = asyncHandler(
         : undefined,
       keyword: req.query.keyword as string | undefined,
       dueDate: req.query.dueDate as string | undefined,
+      sprintId: req.query.sprintId as string | undefined,
     }; 
      const pagination = {
       pageSize: parseInt(req.query.pageSize as string) || 10,
@@ -301,5 +303,64 @@ export const deleteTaskCommentController = asyncHandler(
       message: `Deleted a comment`,
     });
     res.status(204).send();
+  }
+);
+
+export const getTasksBySprintController = asyncHandler(
+  async (req: Request, res: Response) => {
+    const userId = req.user?._id;
+    const workspaceId = workspaceIdSchema.parse(req.params.workspaceId);
+    const projectId = projectIdSchema.parse(req.params.projectId);
+    const sprintId = sprintIdSchema.parse(req.params.sprintId);
+
+    const { role } = await getMemberRoleInWorkspace(userId, workspaceId);
+    roleGuard(role, [Permissions.VIEW_PROJECT, Permissions.VIEW_ONLY]);
+
+    const result = await getTasksBySprintService(
+      workspaceId,
+      projectId,
+      sprintId
+    );
+
+    return res.status(HTTPSTATUS.OK).json({
+      message: "Tasks retrieved successfully",
+      ...result,
+    });
+  }
+);
+
+export const updateTaskAIPredictionsController = asyncHandler(
+  async (req: Request, res: Response) => {
+    const userId = req.user?._id;
+    const taskId = taskIdSchema.parse(req.params.id);
+    const projectId = projectIdSchema.parse(req.params.projectId);
+    const workspaceId = workspaceIdSchema.parse(req.params.workspaceId);
+    const body = req.body;
+
+    const { role } = await getMemberRoleInWorkspace(userId, workspaceId);
+    roleGuard(role, [Permissions.EDIT_TASK]);
+
+    const { updatedTask } = await updateTaskAIPredictionsService(
+      workspaceId,
+      projectId,
+      taskId,
+      {
+        aiComplexity: body.aiComplexity,
+        aiRisk: body.aiRisk,
+        aiPriority: body.aiPriority,
+      }
+    );
+
+    await Activity.create({
+      projectId: projectId,
+      userId: userId,
+      type: 'task_update',
+      message: `AI predictions updated for task: ${updatedTask.title}`,
+    });
+
+    return res.status(HTTPSTATUS.OK).json({
+      message: "Task AI predictions updated successfully",
+      task: updatedTask,
+    });
   }
 ); 

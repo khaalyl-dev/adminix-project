@@ -227,6 +227,7 @@ export const getAllTasksQueryFn = async ({
   priority,
   status,
   dueDate,
+  sprintId,
   pageNumber,
   pageSize,
 }: AllTaskPayloadType): Promise<AllTaskResponseType> => {
@@ -239,6 +240,7 @@ export const getAllTasksQueryFn = async ({
   if (priority) queryParams.append("priority", priority);
   if (status) queryParams.append("status", status);
   if (dueDate) queryParams.append("dueDate", dueDate);
+  if (sprintId) queryParams.append("sprintId", sprintId);
   if (pageNumber) queryParams.append("pageNumber", pageNumber?.toString());
   if (pageSize) queryParams.append("pageSize", pageSize?.toString());
 
@@ -257,7 +259,180 @@ export const deleteTaskMutationFn = async ({
   message: string;
 }> => {
   const response = await API.delete(
-    `task/${taskId}/workspace/${workspaceId}/delete`
+    `/task/${taskId}/workspace/${workspaceId}/delete`
   );
+  return response.data;
+};
+
+export const updateTaskAIPredictionsMutationFn = async ({
+  workspaceId,
+  projectId,
+  taskId,
+  predictions,
+}: {
+  workspaceId: string;
+  projectId: string;
+  taskId: string;
+  predictions: {
+    aiComplexity: number;
+    aiRisk: number;
+    aiPriority: number;
+  };
+}): Promise<{
+  message: string;
+  task: any;
+}> => {
+  const response = await API.put(
+    `/task/${taskId}/project/${projectId}/workspace/${workspaceId}/ai-predictions`,
+    predictions
+  );
+  return response.data;
+};
+
+//********* SPRINT ****************
+//************* */
+
+export const getSprintsQueryFn = async ({
+  workspaceId,
+  projectId,
+}: {
+  workspaceId: string;
+  projectId: string;
+}): Promise<{
+  message: string;
+  sprints: any[];
+  pagination: {
+    pageSize: number;
+    pageNumber: number;
+    totalCount: number;
+    totalPages: number;
+    skip: number;
+  };
+}> => {
+  const response = await API.get(`/sprint/${workspaceId}/projects/${projectId}/sprints`);
+  return response.data;
+};
+
+export const getNextSprintNumberQueryFn = async ({
+  workspaceId,
+  projectId,
+}: {
+  workspaceId: string;
+  projectId: string;
+}): Promise<{
+  message: string;
+  nextSprintNumber: number;
+}> => {
+  const response = await API.get(`/sprint/${workspaceId}/projects/${projectId}/sprints/next-number`);
+  return response.data;
+};
+
+export const createSprintMutationFn = async ({
+  workspaceId,
+  projectId,
+  data,
+}: {
+  workspaceId: string;
+  projectId: string;
+  data: {
+    name: string;
+    description?: string;
+    sprintNumber: number;
+    startDate?: string;
+    endDate?: string;
+    capacity?: number;
+    status?: string;
+  };
+}): Promise<{
+  message: string;
+  sprint: any;
+}> => {
+  const response = await API.post(`/sprint/${workspaceId}/projects/${projectId}/sprints`, data);
+  return response.data;
+};
+
+export const updateSprintMutationFn = async ({
+  workspaceId,
+  projectId,
+  sprintId,
+  data,
+}: {
+  workspaceId: string;
+  projectId: string;
+  sprintId: string;
+  data: {
+    name?: string;
+    description?: string;
+    startDate?: string;
+    endDate?: string;
+    capacity?: number;
+    status?: string;
+  };
+}): Promise<{
+  message: string;
+  sprint: any;
+}> => {
+  const response = await API.put(`/sprint/${workspaceId}/projects/${projectId}/sprints/${sprintId}`, data);
+  return response.data;
+};
+
+export const deleteSprintMutationFn = async ({
+  workspaceId,
+  projectId,
+  sprintId,
+  deleteTasks,
+}: {
+  workspaceId: string;
+  projectId: string;
+  sprintId: string;
+  deleteTasks?: boolean;
+}): Promise<{
+  message: string;
+}> => {
+  const params = deleteTasks !== undefined ? `?deleteTasks=${deleteTasks}` : '';
+  const response = await API.delete(`/sprint/${workspaceId}/projects/${projectId}/sprints/${sprintId}${params}`);
+  return response.data;
+};
+
+export const getTasksBySprintQueryFn = async ({
+  workspaceId,
+  projectId,
+  sprintId,
+}: {
+  workspaceId: string;
+  projectId: string;
+  sprintId: string;
+}): Promise<{
+  message: string;
+  tasks: any[];
+  totalCount: number;
+}> => {
+  const response = await API.get(`/task/${workspaceId}/projects/${projectId}/sprint/${sprintId}/tasks`);
+  return response.data;
+};
+
+// CSV Workers API functions
+export const importCSVWorkersMutationFn = async ({
+  workspaceId,
+  csvData,
+}: {
+  workspaceId: string;
+  csvData: string;
+}): Promise<{
+  message: string;
+  imported: any[];
+  errors: string[];
+  totalImported: number;
+  totalErrors: number;
+}> => {
+  const response = await API.post(`/member/workspace/${workspaceId}/csv-workers/import`, { csvData });
+  return response.data;
+};
+
+export const getCSVWorkersQueryFn = async (workspaceId: string): Promise<{
+  message: string;
+  csvWorkers: any[];
+}> => {
+  const response = await API.get(`/member/workspace/${workspaceId}/csv-workers`);
   return response.data;
 };

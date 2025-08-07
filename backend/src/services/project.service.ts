@@ -128,8 +128,35 @@ export const getProjectAnalyticsService = async(
     completedTasks: _analytics.completedTasks[0]?.count || 0,
   };
 
+  // Call ML service for AI-powered project analysis
+  let aiAnalytics = null;
+  try {
+    const mlServiceUrl = process.env.ML_SERVICE_URL || "http://localhost:3000";
+    const response = await fetch(`${mlServiceUrl}/predict/project`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        project_title: project.name,
+        project_description: project.description || "",
+        max_workers_per_task: 3,
+        workspace_id: workspaceId
+      })
+    });
+
+    if (response.ok) {
+      aiAnalytics = await response.json();
+    } else {
+      console.log(`ML service error: ${response.status} - ${response.statusText}`);
+    }
+  } catch (error) {
+    console.log(`Failed to call ML service: ${error}`);
+  }
+
     return {
     analytics,
+    aiAnalytics,
   };
 };
 

@@ -6,7 +6,6 @@ import CreateTaskDialog from "../task/create-task-dialog";
 import EditProjectDialog from "./edit-project-dialog";
 import useWorkspaceId from "@/hooks/use-workspace-id";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { getProjectByIdQueryFn } from "@/lib/api";
 import PermissionsGuard from "@/components/resuable/permission-guard";
 import { Permissions } from "@/constant";
 import { Dialog, DialogTrigger, DialogContent, DialogTitle } from '@/components/ui/dialog';
@@ -19,17 +18,53 @@ const ProjectHeader = () => {
 
   const workspaceId = useWorkspaceId();
 
-  const { data, isPending, isError } = useQuery({
+  // Validate required parameters
+  if (!projectId) {
+    return (
+      <div className="flex items-center justify-between space-y-2">
+        <div className="flex items-center gap-2">
+          <h2 className="flex items-center gap-3 text-xl font-medium truncate tracking-tight text-red-600">
+            Error: Project ID is missing
+          </h2>
+        </div>
+      </div>
+    );
+  }
+
+  if (!workspaceId) {
+    return (
+      <div className="flex items-center justify-between space-y-2">
+        <div className="flex items-center gap-2">
+          <h2 className="flex items-center gap-3 text-xl font-medium truncate tracking-tight text-red-600">
+            Error: Workspace ID is missing
+          </h2>
+        </div>
+      </div>
+    );
+  }
+
+  const { data, isPending, isError, error } = useQuery({
     queryKey: ["singleProject", projectId],
-    queryFn: () =>
-      getProjectByIdQueryFn({
-        workspaceId,
-        projectId,
-      }),
+    queryFn: async () => {
+      try {
+        const response = await fetch(`/api/project/${projectId}/workspace/${workspaceId}`, {
+          credentials: 'include',
+        });
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+      } catch (error) {
+        console.error('Project fetch error:', error);
+        throw error;
+      }
+    },
     staleTime: Infinity,
     enabled: !!projectId,
     placeholderData: keepPreviousData,
   });
+
+
 
   const project = data?.project;
 
@@ -39,7 +74,14 @@ const ProjectHeader = () => {
 
   const renderContent = () => {
     if (isPending) return <span>Loading...</span>;
-    if (isError) return <span>Error occured</span>;
+    if (isError) {
+      console.error('Project query error:', error);
+      return (
+        <span className="text-red-600">
+          Error occurred: {error?.message || 'Unknown error'}
+        </span>
+      );
+    }
     return (
       <>
         <span>{projectEmoji}</span>

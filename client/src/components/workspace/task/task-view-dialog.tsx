@@ -20,10 +20,14 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuthContext } from '@/context/auth-provider';
 import useWorkspaceId from '@/hooks/use-workspace-id';
 import useGetWorkspaceMembers from '@/hooks/api/use-get-workspace-members';
-import { Pencil, Trash2, Loader2 } from 'lucide-react';
+import { Pencil, Trash2, Loader2, Brain, TrendingUp, AlertTriangle, Target, Zap, CheckCircle } from 'lucide-react';
 import { Dialog as ConfirmDialog, DialogContent as ConfirmDialogContent } from '@/components/ui/dialog';
 import EditTaskForm from './edit-task-form';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Card, CardContent } from '@/components/ui/card';
+import { Progress } from '@/components/ui/progress';
+import { updateTaskAIPredictionsMutationFn } from '@/lib/api';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 export default function TaskViewDialog({ open, onOpenChange, task, onTaskUpdate }: { open: boolean; onOpenChange: (open: boolean) => void; task?: any; onTaskUpdate?: () => void }) {
   const { user } = useAuthContext();
@@ -145,6 +149,13 @@ export default function TaskViewDialog({ open, onOpenChange, task, onTaskUpdate 
   const [deleteLoading, setDeleteLoading] = useState(false);
   const editingTextareaRef = React.useRef<HTMLTextAreaElement>(null);
 
+  // AI Prediction states
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+  const [aiSuccess, setAiSuccess] = useState<string | null>(null);
+  const [taskPrediction, setTaskPrediction] = useState<any>(null);
+  const queryClient = useQueryClient();
+
   useEffect(() => {
     if (editingCommentId && editingTextareaRef.current) {
       editingTextareaRef.current.focus();
@@ -180,6 +191,64 @@ export default function TaskViewDialog({ open, onOpenChange, task, onTaskUpdate 
   };
   const handleEditCancel = () => {
     setEditMode(false);
+  };
+
+  // AI Prediction functions
+  const predictTask = async () => {
+    const response = await fetch('http://localhost:3000/predict/task', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ task_text: task.title + (task.description ? ' ' + task.description : '') })
+    });
+    if (!response.ok) throw new Error('Task prediction failed');
+    return response.json();
+  };
+
+  const handleAiPrediction = async () => {
+    setAiLoading(true);
+    setAiError(null);
+    setAiSuccess(null);
+    
+    try {
+      const prediction = await predictTask();
+      setTaskPrediction(prediction);
+      setAiSuccess('Task prediction completed successfully');
+    } catch (err: any) {
+      setAiError(err.message || 'An error occurred during prediction');
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  const updateAIPredictionsMutation = useMutation({
+    mutationFn: updateTaskAIPredictionsMutationFn,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["all-tasks"] });
+      toast.toast({ title: 'Success', description: 'AI predictions saved to task', variant: 'success' });
+      onTaskUpdate?.();
+    },
+    onError: (error: any) => {
+      toast.toast({ title: 'Error', description: error.message || 'Failed to save AI predictions', variant: 'destructive' });
+    },
+  });
+
+  const handleSaveAIPredictions = () => {
+    if (!taskPrediction || !task) return;
+    
+    updateAIPredictionsMutation.mutate({
+      workspaceId: workspaceId!,
+      projectId: task.project._id,
+      taskId: task._id,
+      predictions: {
+        aiComplexity: taskPrediction.complexity,
+        aiRisk: taskPrediction.risk,
+        aiPriority: taskPrediction.priority,
+      },
+    });
+  };
+
+  const formatNumber = (num: number, decimals: number = 2) => {
+    return Number(num).toFixed(decimals);
   };
 
   if (!task) return null;
@@ -246,6 +315,7 @@ export default function TaskViewDialog({ open, onOpenChange, task, onTaskUpdate 
               <div className="flex gap-8 mb-4 border-b">
                 <button className={`pb-2 px-1 border-b-2 text-base font-medium ${tab === "comments" ? "border-black" : "border-transparent text-gray-400"}`} onClick={() => setTab("comments")}>Comments <span className="ml-1 text-xs bg-gray-200 rounded px-1">{comments.length}</span></button>
                 <button className={`pb-2 px-1 border-b-2 text-base font-medium ${tab === "description" ? "border-black" : "border-transparent text-gray-400"}`} onClick={() => setTab("description")}>Description</button>
+                <button className={`pb-2 px-1 border-b-2 text-base font-medium ${tab === "ai-predictions" ? "border-black" : "border-transparent text-gray-400"}`} onClick={() => setTab("ai-predictions")}>AI Predictions</button>
               </div>
               {tab === "comments" && (
                 <div>
@@ -359,6 +429,163 @@ export default function TaskViewDialog({ open, onOpenChange, task, onTaskUpdate 
                     <div className="flex flex-col items-center justify-center text-gray-400 py-8">
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16h8M8 12h8m-8-4h8M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                       <span className="text-base">No description provided for this task.</span>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {tab === "ai-predictions" && (
+                <div className="space-y-4">
+                  {/* Alert Messages */}
+                  {(aiError || aiSuccess) && (
+                    <div className="mb-4">
+                      {aiError && (
+                        <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center space-x-3">
+                          <AlertTriangle className="w-5 h-5 text-red-600" />
+                          <span className="text-red-800">{aiError}</span>
+                          <Button variant="ghost" size="sm" onClick={() => setAiError(null)}>×</Button>
+                        </div>
+                      )}
+                      {aiSuccess && (
+                        <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-center space-x-3">
+                          <CheckCircle className="w-5 h-5 text-green-600" />
+                          <span className="text-green-800">{aiSuccess}</span>
+                          <Button variant="ghost" size="sm" onClick={() => setAiSuccess(null)}>×</Button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* AI Prediction Button */}
+                  <div className="bg-white rounded-lg border border-gray-200 p-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Brain className="w-5 h-5 text-blue-600" />
+                      <h3 className="font-semibold text-lg">AI Task Analysis</h3>
+                    </div>
+                    <p className="text-gray-600 text-sm mb-4">
+                      Get AI-powered insights for complexity, risk, and priority based on task content.
+                    </p>
+                    <Button
+                      onClick={handleAiPrediction}
+                      disabled={aiLoading}
+                      className="w-full"
+                    >
+                      {aiLoading ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Analyzing...
+                        </>
+                      ) : (
+                        <>
+                          <Zap className="w-4 h-4 mr-2" />
+                          Analyze Task
+                        </>
+                      )}
+                    </Button>
+                  </div>
+
+                  {/* AI Prediction Results */}
+                  {taskPrediction && (
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <Card className="bg-purple-50 border-purple-200">
+                          <CardContent className="p-4">
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="text-purple-700 font-medium">Complexity</span>
+                              <TrendingUp className="w-4 h-4 text-purple-600" />
+                            </div>
+                            <div className="text-2xl font-bold text-purple-900">
+                              {formatNumber(taskPrediction.complexity, 1)}/10
+                            </div>
+                            <Progress value={(taskPrediction.complexity / 10) * 100} className="mt-2" />
+                          </CardContent>
+                        </Card>
+                        
+                        <Card className="bg-red-50 border-red-200">
+                          <CardContent className="p-4">
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="text-red-700 font-medium">Risk</span>
+                              <AlertTriangle className="w-4 h-4 text-red-600" />
+                            </div>
+                            <div className="text-2xl font-bold text-red-900">
+                              {formatNumber(taskPrediction.risk, 1)}/10
+                            </div>
+                            <Progress value={(taskPrediction.risk / 10) * 100} className="mt-2" />
+                          </CardContent>
+                        </Card>
+                        
+                        <Card className="bg-blue-50 border-blue-200">
+                          <CardContent className="p-4">
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="text-blue-700 font-medium">Priority</span>
+                              <Target className="w-4 h-4 text-blue-600" />
+                            </div>
+                            <div className="text-2xl font-bold text-blue-900">
+                              {formatNumber(taskPrediction.priority, 1)}/10
+                            </div>
+                            <Progress value={(taskPrediction.priority / 10) * 100} className="mt-2" />
+                          </CardContent>
+                        </Card>
+                      </div>
+
+                      {/* Save Predictions Button */}
+                      <div className="bg-white rounded-lg border border-gray-200 p-4">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h4 className="font-medium text-gray-900">Save AI Predictions</h4>
+                            <p className="text-sm text-gray-600">Store these predictions in the task for future reference</p>
+                          </div>
+                          <Button
+                            onClick={handleSaveAIPredictions}
+                            disabled={updateAIPredictionsMutation.isPending}
+                            className="bg-blue-600 hover:bg-blue-700"
+                          >
+                            {updateAIPredictionsMutation.isPending ? (
+                              <>
+                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                Saving...
+                              </>
+                            ) : (
+                              'Save Predictions'
+                            )}
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Existing AI Predictions */}
+                  {(task.aiComplexity || task.aiRisk || task.aiPriority) && (
+                    <div className="bg-gray-50 rounded-lg border border-gray-200 p-4">
+                      <div className="flex items-center gap-2 mb-3">
+                        <CheckCircle className="w-5 h-5 text-green-600" />
+                        <h3 className="font-semibold text-lg">Saved AI Predictions</h3>
+                        {task.aiPredictionDate && (
+                          <span className="text-xs text-gray-500">
+                            {format(new Date(task.aiPredictionDate), 'PPP')}
+                          </span>
+                        )}
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        {task.aiComplexity && (
+                          <div className="bg-white rounded p-3">
+                            <div className="text-sm text-gray-600">Complexity</div>
+                            <div className="text-lg font-bold text-purple-900">{task.aiComplexity}/10</div>
+                          </div>
+                        )}
+                        {task.aiRisk && (
+                          <div className="bg-white rounded p-3">
+                            <div className="text-sm text-gray-600">Risk</div>
+                            <div className="text-lg font-bold text-red-900">{task.aiRisk}/10</div>
+                          </div>
+                        )}
+                        {task.aiPriority && (
+                          <div className="bg-white rounded p-3">
+                            <div className="text-sm text-gray-600">Priority</div>
+                            <div className="text-lg font-bold text-blue-900">{task.aiPriority}/10</div>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>

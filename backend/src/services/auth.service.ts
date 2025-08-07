@@ -25,6 +25,7 @@ export const loginOrCreateAccountService = async(data: {
     try {
         session.startTransaction();
         console.log("Start Session ...");
+        console.log("Provider:", provider, "ProviderId:", providerId, "Email:", email);
         let user = await UserModel.findOne({email}).session(session)
 
         let isNewUser = false;
@@ -44,6 +45,29 @@ export const loginOrCreateAccountService = async(data: {
             });
             await account.save({session});
             isNewUser = true;
+        } else {
+            // Check if account already exists for this provider
+            const existingAccount = await AccountModel.findOne({
+                provider: provider,
+                providerId: providerId
+            }).session(session);
+            
+            console.log("Existing account found:", existingAccount ? "YES" : "NO");
+            
+            if (!existingAccount) {
+                // Create new account for existing user
+                console.log("Creating new account for existing user");
+                const account = new AccountModel({
+                    userId: user._id,
+                    provider: provider,
+                    providerId: providerId, 
+                });
+                await account.save({session});
+                console.log("Account created successfully");
+            } else {
+                // Account exists, just return the user
+                console.log("Account already exists for this provider, skipping account creation");
+            }
         }
 
         // If the user is new and has no currentWorkspace, create a default workspace

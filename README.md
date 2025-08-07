@@ -33,6 +33,7 @@ adminix-project/
 - Real-time notifications
 - Role-based permissions
 - Activity log and analytics
+- **🤖 AI-Powered Analytics** - Task prediction, sprint planning, and project analysis
 - Responsive, modern UI
 
 ---
@@ -41,6 +42,7 @@ adminix-project/
 - **Node.js** (v16 or higher recommended)
 - **npm** (comes with Node.js)
 - **MongoDB** (Atlas or local)
+- **Python 3.9+** (for AI features)
 
 ---
 
@@ -75,22 +77,40 @@ npm install
 - If you have environment variables for the client (e.g., Vite), create a `.env` file in `client/` as needed.
 
 ### 4. Running the Applications
+
+#### Option 1: Quick Start (Recommended)
+```sh
+./start-all.sh
+```
+This script will automatically start all services including the AI features.
+
+#### Option 2: Manual Start
 **You must start the backend and client separately in two terminal windows:**
 
-#### Start Backend
+##### Start Backend
 ```sh
 cd backend
 npm run dev
 # or: npm start
 ```
-- The backend will run on the port specified in `.env` (default: 8000).
+- The backend will run on the port specified in `.env` (default: 5000).
 
-#### Start Client
+##### Start Client
 ```sh
 cd client
 npm run dev
 ```
 - The client will run on [http://localhost:5173](http://localhost:5173) by default.
+
+##### Start AI Service (Optional)
+```sh
+cd ml-service
+python3 -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+pip install -r requirements.txt
+python start.py
+```
+- The AI service will run on [http://localhost:8000](http://localhost:8000).
 
 ---
 
@@ -120,6 +140,14 @@ npm run dev
 - **src/assets/**: Static assets
 - **src/public/**: Public files (images, favicon, etc.)
 
+### AI Service (`/ml-service`)
+- **api.py**: FastAPI application with AI endpoints
+- **model.py**: Formula Y assignment engine
+- **ml.py**: ML prediction models
+- **gemini.py**: AI task suggestions
+- **start.py**: Service startup script
+- **requirements.txt**: Python dependencies
+
 ---
 
 ## Google OAuth & Meet Integration
@@ -138,6 +166,16 @@ npm run dev
 - For real-time features, ensure the socket server (if used) is running and configured.
 
 ---
+
+## AI Features
+
+The AdminiX project now includes AI-powered analytics capabilities:
+
+- **Task Prediction**: Analyze task complexity, risk, and priority
+- **Sprint Planning**: Generate comprehensive sprint plans
+- **Project Analysis**: Complete project analysis with worker assignment
+
+For detailed information about the AI integration, see [AI_INTEGRATION.md](./AI_INTEGRATION.md).
 
 ## Contributing
 - Please read and follow the code comments and folder-level READMEs.

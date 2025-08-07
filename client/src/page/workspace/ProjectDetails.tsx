@@ -16,7 +16,7 @@ import { Button } from '@/components/ui/button';
 import { formatDistanceToNow, format } from 'date-fns';
 import {Loader2, Paperclip, Link as Star, Pin, PinOff, Calendar, Trash2 } from 'lucide-react';
 import useWorkspaceId from '@/hooks/use-workspace-id';
-import { getAllTasksQueryFn, getProjectByIdQueryFn } from '@/lib/api';
+import { getAllTasksQueryFn } from '@/lib/api';
 import { useQuery } from '@tanstack/react-query';
 import useGetWorkspaceMembers from '@/hooks/api/use-get-workspace-members';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
@@ -25,6 +25,7 @@ import { useRef } from 'react';
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion';
 import ScheduleMeeting from './ScheduleMeeting';
 import { Dialog, DialogTrigger, DialogContent, DialogTitle } from '@/components/ui/dialog';
+import SprintManagement from '@/components/workspace/sprint/sprint-management';
 
 function getActivityIcon(type: string) {
   // Return a black dot for all activity types
@@ -240,7 +241,7 @@ function ActivityLogTab({ onPinChange }: { onPinChange?: () => void }) {
           <option value="all">Show all activity</option>
           <option value="comment">Comments</option>
           <option value="file">Files</option>
-          <option value="event">Events</option>
+          <option value="event">Meetings</option>
           <option value="task_create">Task Created</option>
           <option value="task_update">Task Updated</option>
           <option value="task_delete">Task Deleted</option>
@@ -565,7 +566,20 @@ const ProjectDetails = () => {
   // Fetch real project data
   const { data: projectData } = useQuery({
     queryKey: ["singleProject", projectId],
-    queryFn: () => getProjectByIdQueryFn({ workspaceId: workspaceId!, projectId: projectId! }),
+    queryFn: async () => {
+      try {
+        const response = await fetch(`/api/project/${projectId}/workspace/${workspaceId}`, {
+          credentials: 'include',
+        });
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+      } catch (error) {
+        console.error('Project fetch error:', error);
+        throw error;
+      }
+    },
     enabled: !!workspaceId && !!projectId,
   });
   const project = projectData?.project;
@@ -643,8 +657,9 @@ const ProjectDetails = () => {
             <TabsList className="mb-4">
               <TabsTrigger value="analytics">Analytics</TabsTrigger>
               <TabsTrigger value="tasks">Tasks</TabsTrigger>
+              <TabsTrigger value="sprints">Sprints</TabsTrigger>
               <TabsTrigger value="activity">Activity Log</TabsTrigger>
-              <TabsTrigger value="events">Events</TabsTrigger>
+              <TabsTrigger value="events">Meetings</TabsTrigger>
             </TabsList>
             <TabsContent value="analytics">
               <ProjectAnalytics />
@@ -653,6 +668,9 @@ const ProjectDetails = () => {
             <TabsContent value="tasks">
               <TaskTable />
             </TabsContent>
+            <TabsContent value="sprints">
+              <SprintManagement project={project} />
+            </TabsContent>
             <TabsContent value="activity">
               <ActivityLogTab onPinChange={handlePinChange} />
             </TabsContent>
@@ -660,12 +678,12 @@ const ProjectDetails = () => {
               <div className="flex flex-col gap-6">
                 {/* Upcoming Events List */}
                 <div className="w-full">
-                  <h3 className="text-lg font-semibold mb-4">Upcoming Events</h3>
+                  <h3 className="text-lg font-semibold mb-4">Upcoming Meetings</h3>
                   <ul className="space-y-3">
                     {eventsLoading ? (
                       <div>Loading events...</div>
                     ) : upcomingEvents.length === 0 ? (
-                      <div className="text-gray-400 text-sm">No upcoming events.</div>
+                      <div className="text-gray-400 text-sm">No upcoming Meetings.</div>
                     ) : (
                       upcomingEvents.map(event => (
                         <li key={event.id} className="rounded-lg border bg-white p-4 flex items-center justify-between gap-4 shadow-sm">
