@@ -3,6 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+// Express route definitions for authentication-related API endpoints.
 const express_1 = require("express");
 const passport_1 = __importDefault(require("passport"));
 const app_config_1 = require("../config/app.config");
@@ -13,7 +14,8 @@ authRoutes.post("/register", auth_controller_1.registerUserController);
 authRoutes.post("/login", auth_controller_1.loginController);
 authRoutes.post("/logout", auth_controller_1.logOutController);
 authRoutes.get("/google", passport_1.default.authenticate("google", {
-    scope: ["profile", "email"],
+    scope: ["profile", "email", "https://www.googleapis.com/auth/calendar.events"],
+    prompt: "consent",
 }));
 authRoutes.get("/google/callback", passport_1.default.authenticate("google", {
     failureRedirect: failedUrl,

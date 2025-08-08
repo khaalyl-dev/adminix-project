@@ -4,6 +4,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.verifyUserService = exports.registerUserService = exports.loginOrCreateAccountService = void 0;
+// Service for handling authentication and authorization logic.
 const mongoose_1 = __importDefault(require("mongoose"));
 const user_model_1 = __importDefault(require("../models/user.model"));
 const account_model_1 = __importDefault(require("../models/account.model"));
@@ -19,6 +20,7 @@ const loginOrCreateAccountService = async (data) => {
     try {
         session.startTransaction();
         console.log("Start Session ...");
+        console.log("Provider:", provider, "ProviderId:", providerId, "Email:", email);
         let user = await user_model_1.default.findOne({ email }).session(session);
         let isNewUser = false;
         if (!user) {
@@ -36,6 +38,29 @@ const loginOrCreateAccountService = async (data) => {
             });
             await account.save({ session });
             isNewUser = true;
+        }
+        else {
+            // Check if account already exists for this provider
+            const existingAccount = await account_model_1.default.findOne({
+                provider: provider,
+                providerId: providerId
+            }).session(session);
+            console.log("Existing account found:", existingAccount ? "YES" : "NO");
+            if (!existingAccount) {
+                // Create new account for existing user
+                console.log("Creating new account for existing user");
+                const account = new account_model_1.default({
+                    userId: user._id,
+                    provider: provider,
+                    providerId: providerId,
+                });
+                await account.save({ session });
+                console.log("Account created successfully");
+            }
+            else {
+                // Account exists, just return the user
+                console.log("Account already exists for this provider, skipping account creation");
+            }
         }
         // If the user is new and has no currentWorkspace, create a default workspace
         if (!user.currentWorkspace) {

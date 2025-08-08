@@ -3,6 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+// Passport.js authentication configuration for the backend. This file sets up authentication strategies and middleware.
 const passport_1 = __importDefault(require("passport"));
 const passport_google_oauth20_1 = require("passport-google-oauth20");
 const passport_local_1 = require("passport-local");
@@ -10,11 +11,12 @@ const app_config_1 = require("./app.config");
 const app_error_1 = require("../utils/app.error");
 const account_provider_enums_1 = require("../enums/account-provider.enums");
 const auth_service_1 = require("../services/auth.service");
+const account_model_1 = __importDefault(require("../models/account.model"));
 passport_1.default.use(new passport_google_oauth20_1.Strategy({
     clientID: app_config_1.config.GOOGLE_CLIENT_ID,
     clientSecret: app_config_1.config.GOOGLE_CLIENT_SECRET,
     callbackURL: app_config_1.config.GOOGLE_CALLBACK_URL,
-    scope: ["profile", "email"],
+    scope: ["profile", "email", "https://www.googleapis.com/auth/calendar.events"],
     passReqToCallback: true,
 }, async (req, accessToken, refreshToken, profile, done) => {
     try {
@@ -31,6 +33,14 @@ passport_1.default.use(new passport_google_oauth20_1.Strategy({
             picture: picture,
             email: email,
         });
+        // Store accessToken and refreshToken in AccountModel
+        await account_model_1.default.findOneAndUpdate({ provider: account_provider_enums_1.ProviderEnum.GOOGLE, providerId: googleId }, {
+            $set: {
+                refreshToken: refreshToken || null,
+                accessToken: accessToken || null,
+                // tokenExpiry: ... (if available)
+            }
+        }, { upsert: false });
         done(null, user);
     }
     catch (error) {

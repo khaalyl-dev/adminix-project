@@ -3,10 +3,12 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deleteTaskCommentController = exports.editTaskCommentController = exports.postTaskCommentController = exports.getTaskCommentsController = exports.deleteTaskController = exports.getTaskByIdController = exports.getAllTasksController = exports.updateTaskController = exports.createTaskController = void 0;
+exports.updateTaskAIPredictionsController = exports.getTasksBySprintController = exports.deleteTaskCommentController = exports.editTaskCommentController = exports.postTaskCommentController = exports.getTaskCommentsController = exports.deleteTaskController = exports.getTaskByIdController = exports.getAllTasksController = exports.updateTaskController = exports.createTaskController = void 0;
+// Controller for handling task-related API endpoints and business logic.
 const asyncHandler_middleware_1 = require("../middlewares/asyncHandler.middleware");
 const project_validation_1 = require("../validation/project.validation");
 const workspace_validation_1 = require("../validation/workspace.validation");
+const sprint_validation_1 = require("../validation/sprint.validation");
 const roleGuard_1 = require("../utils/roleGuard");
 const http_config_1 = require("../config/http.config");
 const role_enum_1 = require("../enums/role.enum");
@@ -19,6 +21,7 @@ const comment_model_1 = __importDefault(require("../models/comment.model"));
 const activity_model_1 = __importDefault(require("../models/activity.model"));
 const task_model_1 = __importDefault(require("../models/task.model"));
 const app_error_1 = require("../utils/app.error");
+const date_fns_1 = require("date-fns");
 exports.createTaskController = (0, asyncHandler_middleware_1.asyncHandler)(async (req, res) => {
     const userId = req.user?._id;
     const body = task_validation_1.createTaskSchema.parse(req.body);
@@ -32,14 +35,14 @@ exports.createTaskController = (0, asyncHandler_middleware_1.asyncHandler)(async
         userId,
         workspaceId,
         type: 'task',
-        message: `Task '${task.title}' created`,
+        message: `Task {{${task.title}}} created`,
     });
     index_1.io.to(workspaceId.toString()).emit('notification', notification);
     await activity_model_1.default.create({
         projectId: projectId,
         userId: userId,
         type: 'task_create',
-        message: `Task created: ${task.title}`,
+        message: `✅ **Task Created**\n📋 ${task.title}\n📅 ${(0, date_fns_1.format)(new Date(), "PPpp")}\n👤 Created by ${req.user?.name || 'User'}\n🎯 Priority: ${task.priority || 'Medium'}\n📝 Status: ${task.status || 'To Do'}`,
     });
     return res.status(http_config_1.HTTPSTATUS.OK).json({
         message: "Task created successfully",
@@ -89,8 +92,8 @@ exports.updateTaskController = (0, asyncHandler_middleware_1.asyncHandler)(async
         changes.push(`dueDate from "${oldTask.dueDate.toISOString()}" to "${new Date(body.dueDate).toISOString()}"`);
     }
     const activityMsg = changes.length > 0
-        ? `Task updated: ${changes.join(', ')}`
-        : `Task updated: ${updatedTask.title}`;
+        ? `🔄 **Task Updated**\n📋 ${updatedTask.title}\n📅 ${(0, date_fns_1.format)(new Date(), "PPpp")}\n👤 Updated by ${req.user?.name || 'User'}\n📝 Changes: ${changes.join(', ')}`
+        : `🔄 **Task Updated**\n📋 ${updatedTask.title}\n📅 ${(0, date_fns_1.format)(new Date(), "PPpp")}\n👤 Updated by ${req.user?.name || 'User'}`;
     await activity_model_1.default.create({
         projectId: projectId,
         userId: userId,
@@ -118,6 +121,7 @@ exports.getAllTasksController = (0, asyncHandler_middleware_1.asyncHandler)(asyn
             : undefined,
         keyword: req.query.keyword,
         dueDate: req.query.dueDate,
+        sprintId: req.query.sprintId,
     };
     const pagination = {
         pageSize: parseInt(req.query.pageSize) || 10,
@@ -151,6 +155,11 @@ exports.deleteTaskController = (0, asyncHandler_middleware_1.asyncHandler)(async
     const projectId = project_validation_1.projectIdSchema.parse(req.params.projectId);
     const { role } = await (0, member_service_1.getMemberRoleInWorkspace)(userId, workspaceId);
     (0, roleGuard_1.roleGuard)(role, [role_enum_1.Permissions.DELETE_TASK]);
+    // Fetch the task before deleting to get its title
+    const oldTask = await task_model_1.default.findById(taskId);
+    if (!oldTask) {
+        throw new app_error_1.NotFoundException("Task not found.");
+    }
     await (0, task_service_1.deleteTaskService)(workspaceId, taskId);
     // Create notification
     const notification = await notification_model_1.default.create({
@@ -164,7 +173,7 @@ exports.deleteTaskController = (0, asyncHandler_middleware_1.asyncHandler)(async
         projectId: projectId,
         userId: userId,
         type: 'task_delete',
-        message: `Task deleted: ${taskId}`,
+        message: `🗑️ **Task Deleted**\n📋 ${oldTask.title}\n📅 ${(0, date_fns_1.format)(new Date(), "PPpp")}\n👤 Deleted by ${req.user?.name || 'User'}\n⚠️ Task ID: ${taskId}`,
     });
     return res.status(http_config_1.HTTPSTATUS.OK).json({
         message: "Task deleted successfully",
@@ -196,7 +205,7 @@ exports.postTaskCommentController = (0, asyncHandler_middleware_1.asyncHandler)(
         projectId: task?.project,
         userId,
         type: 'comment_create',
-        message: `Commented: ${message}`,
+        message: `💬 **Comment Added**\n📋 ${task?.title || 'Task'}\n📅 ${(0, date_fns_1.format)(new Date(), "PPpp")}\n👤 Commented by ${req.user?.name || 'User'}\n💭 ${message.substring(0, 100)}${message.length > 100 ? '...' : ''}`,
     });
     res.status(201).json({ comment });
 });
@@ -222,7 +231,7 @@ exports.editTaskCommentController = (0, asyncHandler_middleware_1.asyncHandler)(
         projectId: task?.project,
         userId,
         type: 'comment_edit',
-        message: `Edited a comment: ${message}`,
+        message: `✏️ **Comment Edited**\n📋 ${task?.title || 'Task'}\n📅 ${(0, date_fns_1.format)(new Date(), "PPpp")}\n👤 Edited by ${req.user?.name || 'User'}\n💭 ${message.substring(0, 100)}${message.length > 100 ? '...' : ''}`,
     });
     res.status(200).json({ comment });
 });
@@ -242,7 +251,44 @@ exports.deleteTaskCommentController = (0, asyncHandler_middleware_1.asyncHandler
         projectId: task?.project,
         userId,
         type: 'comment_delete',
-        message: `Deleted a comment`,
+        message: `🗑️ **Comment Deleted**\n📋 ${task?.title || 'Task'}\n📅 ${(0, date_fns_1.format)(new Date(), "PPpp")}\n👤 Deleted by ${req.user?.name || 'User'}\n💭 Comment removed`,
     });
     res.status(204).send();
+});
+exports.getTasksBySprintController = (0, asyncHandler_middleware_1.asyncHandler)(async (req, res) => {
+    const userId = req.user?._id;
+    const workspaceId = workspace_validation_1.workspaceIdSchema.parse(req.params.workspaceId);
+    const projectId = project_validation_1.projectIdSchema.parse(req.params.projectId);
+    const sprintId = sprint_validation_1.sprintIdSchema.parse(req.params.sprintId);
+    const { role } = await (0, member_service_1.getMemberRoleInWorkspace)(userId, workspaceId);
+    (0, roleGuard_1.roleGuard)(role, [role_enum_1.Permissions.VIEW_PROJECT, role_enum_1.Permissions.VIEW_ONLY]);
+    const result = await (0, task_service_1.getTasksBySprintService)(workspaceId, projectId, sprintId);
+    return res.status(http_config_1.HTTPSTATUS.OK).json({
+        message: "Tasks retrieved successfully",
+        ...result,
+    });
+});
+exports.updateTaskAIPredictionsController = (0, asyncHandler_middleware_1.asyncHandler)(async (req, res) => {
+    const userId = req.user?._id;
+    const taskId = task_validation_1.taskIdSchema.parse(req.params.id);
+    const projectId = project_validation_1.projectIdSchema.parse(req.params.projectId);
+    const workspaceId = workspace_validation_1.workspaceIdSchema.parse(req.params.workspaceId);
+    const body = req.body;
+    const { role } = await (0, member_service_1.getMemberRoleInWorkspace)(userId, workspaceId);
+    (0, roleGuard_1.roleGuard)(role, [role_enum_1.Permissions.EDIT_TASK]);
+    const { updatedTask } = await (0, task_service_1.updateTaskAIPredictionsService)(workspaceId, projectId, taskId, {
+        aiComplexity: body.aiComplexity,
+        aiRisk: body.aiRisk,
+        aiPriority: body.aiPriority,
+    });
+    await activity_model_1.default.create({
+        projectId: projectId,
+        userId: userId,
+        type: 'task_update',
+        message: `AI predictions updated for task: ${updatedTask.title}`,
+    });
+    return res.status(http_config_1.HTTPSTATUS.OK).json({
+        message: "Task AI predictions updated successfully",
+        task: updatedTask,
+    });
 });

@@ -14,6 +14,8 @@ const role_enum_1 = require("../enums/role.enum");
 const notification_model_1 = __importDefault(require("../models/notification.model"));
 const index_1 = require("../index");
 const mongoose_1 = __importDefault(require("mongoose"));
+const activity_model_1 = __importDefault(require("../models/activity.model"));
+const date_fns_1 = require("date-fns");
 exports.createWorkspaceController = (0, asyncHandler_middleware_1.asyncHandler)(async (req, res) => {
     const body = workspace_validation_1.createWorkspaceSchema.parse(req.body);
     const userId = req.user?._id;
@@ -27,9 +29,14 @@ exports.createWorkspaceController = (0, asyncHandler_middleware_1.asyncHandler)(
         userId,
         workspaceId,
         type: 'workspace',
-        message: `Workspace '${workspace.name}' created`,
+        message: `Workspace {{${workspace.name}}} created`,
     });
     index_1.io.to(workspaceId).emit('notification', notification);
+    await activity_model_1.default.create({
+        userId,
+        type: 'workspace_create',
+        message: `🏢 **Workspace Created**\n📋 ${workspace.name}\n📅 ${(0, date_fns_1.format)(new Date(), "PPpp")}\n👤 Created by ${req.user?.name || 'User'}\n📝 ${workspace.description || 'No description provided'}`,
+    });
     return res.status(http_config_1.HTTPSTATUS.CREATED).json({
         message: "Workspace created successfully",
         workspace,
@@ -104,9 +111,14 @@ exports.updateWorkspaceByIdController = (0, asyncHandler_middleware_1.asyncHandl
         userId,
         workspaceId,
         type: 'workspace',
-        message: `Workspace '${workspace.name}' updated`,
+        message: `Workspace {{${workspace.name}}} updated`,
     });
     index_1.io.to(workspaceId).emit('notification', notification);
+    await activity_model_1.default.create({
+        userId,
+        type: 'workspace_update',
+        message: `🔄 **Workspace Updated**\n📋 ${workspace.name}\n📅 ${(0, date_fns_1.format)(new Date(), "PPpp")}\n👤 Updated by ${req.user?.name || 'User'}`,
+    });
     return res.status(http_config_1.HTTPSTATUS.OK).json({
         message: "Workspace updated successfully",
         workspace

@@ -33,6 +33,7 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
+// Mongoose model for user profiles and authentication in the backend application.
 const mongoose_1 = __importStar(require("mongoose"));
 const bcrypt_1 = require("../utils/bcrypt");
 const role_enum_1 = require("../enums/role.enum");

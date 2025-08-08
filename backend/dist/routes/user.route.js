@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+// Express route definitions for user-related API endpoints.
 const express_1 = require("express");
 const user_controller_1 = require("../controllers/user.controller");
 const userRoutes = (0, express_1.Router)();

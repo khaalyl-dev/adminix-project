@@ -99,6 +99,42 @@ em-emoji-picker {
 
     --sidebar-primary: 240 5.9% 10%;
 
+  /* Activity styling - using dashboard color scheme */
+  .meeting-activity,
+  .activity-sprint,
+  .activity-task,
+  .activity-project,
+  .activity-file,
+  .activity-workspace,
+  .activity-comment {
+    background: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
+    padding: 12px 16px;
+    border-radius: 8px;
+    margin: 8px 0;
+    font-family: 'Inter', sans-serif;
+  }
+
+  /* Subtle left border accents using dashboard colors */
+  .meeting-activity { border-left: 4px solid hsl(var(--primary)); }
+  .activity-sprint { border-left: 4px solid hsl(var(--chart-1)); }
+  .activity-task { border-left: 4px solid hsl(var(--chart-2)); }
+  .activity-project { border-left: 4px solid hsl(var(--chart-3)); }
+  .activity-file { border-left: 4px solid hsl(var(--chart-4)); }
+  .activity-workspace { border-left: 4px solid hsl(var(--chart-5)); }
+  .activity-comment { border-left: 4px solid hsl(var(--destructive)); }
+
+  /* Text colors using dashboard theme */
+  .meeting-activity,
+  .activity-sprint,
+  .activity-task,
+  .activity-project,
+  .activity-file,
+  .activity-workspace,
+  .activity-comment {
+    color: hsl(var(--foreground));
+  }
+
     --sidebar-primary-foreground: 0 0% 98%;
 
     --sidebar-accent: 240 4.8% 95.9%;

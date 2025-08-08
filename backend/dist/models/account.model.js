@@ -33,6 +33,7 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
+// Mongoose model for user accounts in the backend application.
 const mongoose_1 = __importStar(require("mongoose"));
 const account_provider_enums_1 = require("../enums/account-provider.enums");
 const accountSchema = new mongoose_1.Schema({
@@ -52,12 +53,14 @@ const accountSchema = new mongoose_1.Schema({
         unique: true,
     },
     refreshToken: { type: String, default: null },
+    accessToken: { type: String, default: null },
     tokenExpiry: { type: Date, default: null },
 }, {
     timestamps: true,
     toJSON: {
         transform(doc, ret) {
             delete ret.refreshToken;
+            delete ret.accessToken;
         },
     },
 });

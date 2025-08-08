@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ErrorCodeEnum = void 0;
+// Enum for error codes used for consistent error handling in the backend application.
 exports.ErrorCodeEnum = {
     AUTH_EMAIL_ALREADY_EXISTS: "AUTH_EMAIL_ALREADY_EXISTS",
     AUTH_INVALID_TOKEN: "AUTH_INVALID_TOKEN",

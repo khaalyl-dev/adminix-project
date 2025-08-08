@@ -18,6 +18,7 @@ import { Request as ExpressRequest } from 'express';
 import { FileFilterCallback } from 'multer';
 import mongoose from 'mongoose';
 import { Readable } from 'stream';
+import { format } from "date-fns";
 
 // Use GridFSBucket and ObjectId from mongoose.mongo to avoid type conflicts
 const { GridFSBucket, ObjectId } = mongoose.mongo;
@@ -55,7 +56,7 @@ export const createProjectController = asyncHandler(
       projectId: project._id,
       userId: userId,
       type: 'project_create',
-      message: `Project created: {{${project.name}}}`,
+      message: `🏗️ Project Created\n📋 ${project.name}\n📅 ${format(new Date(), "PPpp")}\n👤 Created by ${req.user?.name || 'User'}\n📝 ${project.description || 'No description provided'}`,
     });
 
     return res.status(HTTPSTATUS.CREATED).json({
@@ -174,8 +175,8 @@ export const updateProjectController = asyncHandler(
       changes.push(`emoji from "${old.emoji || ''}" to "${body.emoji}"`);
     }
     const activityMsg = changes.length > 0
-      ? `Project updated: ${changes.join(', ')}`
-      : `Project updated: ${project.name}`;
+      ? `🔄 Project Updated\n📋 ${project.name}\n📅 ${format(new Date(), "PPpp")}\n👤 Updated by ${req.user?.name || 'User'}\n📝 Changes: ${changes.join(', ')}`
+      : `🔄 Project Updated\n📋 ${project.name}\n📅 ${format(new Date(), "PPpp")}\n👤 Updated by ${req.user?.name || 'User'}`;
 
     await Activity.create({
       projectId: project._id,
@@ -211,7 +212,7 @@ export const deleteProjectController = asyncHandler(
       projectId: project._id,
       userId: userId,
       type: 'project_delete',
-      message: `Project deleted: ${project.name}`,
+      message: `🗑️ Project Deleted\n📋 ${project.name}\n📅 ${format(new Date(), "PPpp")}\n👤 Deleted by ${req.user?.name || 'User'}\n⚠️ All project data has been permanently removed`,
     });
     return res.status(HTTPSTATUS.OK).json({
       message: 'Project deleted successfully',
@@ -359,11 +360,12 @@ export const uploadProjectFileController = asyncHandler(
       }
 
       // Create activity log
+      const fileSizeInMB = (file.size / (1024 * 1024)).toFixed(2);
       await Activity.create({
         projectId,
         userId,
         type: 'file_upload',
-        message: `File uploaded: ${name}`,
+        message: `📁 File Uploaded\n📋 ${name}\n📅 ${format(new Date(), "PPpp")}\n👤 Uploaded by ${req.user?.name || 'User'}\n💾 Size: ${fileSizeInMB} MB`,
         meta: { fileId: fileId, name, size: file.size },
       });
 

@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.HTTPSTATUS = void 0;
+// HTTP server configuration settings for the backend. This file defines HTTP-related options such as port and middleware.
 const httpConfig = () => ({
     //Success responses
     OK: 200,

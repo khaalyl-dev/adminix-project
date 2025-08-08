@@ -13,6 +13,7 @@ import { io } from "../index";
 import { WorkspaceDocument } from "../models/workspace.model";
 import mongoose from 'mongoose';
 import Activity from "../models/activity.model";
+import { format } from "date-fns";
 
 
 export const createWorkspaceController = asyncHandler(
@@ -35,7 +36,7 @@ export const createWorkspaceController = asyncHandler(
         await Activity.create({
           userId,
           type: 'workspace_create',
-          message: `Workspace created: {{${(workspace as WorkspaceDocument).name}}}`,
+          message: `🏢 Workspace Created\n📋 ${(workspace as WorkspaceDocument).name}\n📅 ${format(new Date(), "PPpp")}\n👤 Created by ${req.user?.name || 'User'}\n📝 ${(workspace as WorkspaceDocument).description || 'No description provided'}`,
         });
          return res.status(HTTPSTATUS.CREATED).json({
             message:"Workspace created successfully", 
@@ -163,11 +164,11 @@ export const updateWorkspaceByIdController = asyncHandler (
       message: `Workspace {{${(workspace as WorkspaceDocument).name}}} updated`,
     });
     io.to(workspaceId).emit('notification', notification);
-    await Activity.create({
-      userId,
-      type: 'workspace_update',
-      message: `Workspace updated: {{${(workspace as WorkspaceDocument).name}}}`,
-    });
+            await Activity.create({
+          userId,
+          type: 'workspace_update',
+          message: `🔄 Workspace Updated\n📋 ${(workspace as WorkspaceDocument).name}\n📅 ${format(new Date(), "PPpp")}\n👤 Updated by ${req.user?.name || 'User'}`,
+        });
 
     return res.status(HTTPSTATUS.OK).json({
       message:"Workspace updated successfully", 

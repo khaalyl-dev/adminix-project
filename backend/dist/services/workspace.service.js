@@ -1,5 +1,5 @@
 "use strict";
-/**CREATE NEW WOEKSPACE */
+// Service for handling business logic related to workspaces.
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };

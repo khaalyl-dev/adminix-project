@@ -1,11 +1,12 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.updateTaskSchema = exports.createTaskSchema = exports.taskIdSchema = exports.dueDateSchema = exports.statusSchema = exports.prioritySchema = exports.assignedToSchema = exports.descriptionSchema = exports.titleSchema = void 0;
+exports.updateTaskSchema = exports.createTaskSchema = exports.taskIdSchema = exports.sprintSchema = exports.dueDateSchema = exports.statusSchema = exports.prioritySchema = exports.assignedToSchema = exports.descriptionSchema = exports.titleSchema = void 0;
+// Validation schema and logic for task-related API requests.
 const zod_1 = require("zod");
 const task_enum_1 = require("../enums/task.enum");
 exports.titleSchema = zod_1.z.string().trim().min(1).max(255);
 exports.descriptionSchema = zod_1.z.string().trim().optional();
-exports.assignedToSchema = zod_1.z.string().trim().min(1).nullable().optional();
+exports.assignedToSchema = zod_1.z.string().trim().min(1).nullable().optional().or(zod_1.z.literal(''));
 exports.prioritySchema = zod_1.z.enum(Object.values(task_enum_1.TaskPriorityEnum));
 exports.statusSchema = zod_1.z.enum(Object.values(task_enum_1.TaskStatusEnum));
 exports.dueDateSchema = zod_1.z
@@ -17,6 +18,7 @@ exports.dueDateSchema = zod_1.z
 }, {
     message: "Invalid date format. Please provide a valid date string.",
 });
+exports.sprintSchema = zod_1.z.string().trim().min(1).nullable().optional();
 exports.taskIdSchema = zod_1.z.string().trim().min(1);
 exports.createTaskSchema = zod_1.z.object({
     title: exports.titleSchema,
@@ -25,6 +27,7 @@ exports.createTaskSchema = zod_1.z.object({
     status: exports.statusSchema,
     assignedTo: exports.assignedToSchema,
     dueDate: exports.dueDateSchema,
+    sprint: exports.sprintSchema,
 });
 exports.updateTaskSchema = zod_1.z.object({
     title: exports.titleSchema,
@@ -33,4 +36,5 @@ exports.updateTaskSchema = zod_1.z.object({
     status: exports.statusSchema,
     assignedTo: exports.assignedToSchema,
     dueDate: exports.dueDateSchema,
+    sprint: exports.sprintSchema,
 });

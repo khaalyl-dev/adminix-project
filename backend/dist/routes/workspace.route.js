@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+// Express route definitions for workspace-related API endpoints.
 const express_1 = require("express");
 const workspace_controller_1 = require("../controllers/workspace.controller");
 const workspaceRoutes = (0, express_1.Router)();

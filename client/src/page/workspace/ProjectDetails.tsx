@@ -27,9 +27,21 @@ import ScheduleMeeting from './ScheduleMeeting';
 import { Dialog, DialogTrigger, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import SprintManagement from '@/components/workspace/sprint/sprint-management';
 
+function getActivityClass(type: string) {
+  // Return appropriate CSS class based on activity type
+  if (type.includes('meeting')) return 'meeting-activity';
+  if (type.includes('sprint')) return 'activity-sprint';
+  if (type.includes('task')) return 'activity-task';
+  if (type.includes('project')) return 'activity-project';
+  if (type.includes('file')) return 'activity-file';
+  if (type.includes('workspace')) return 'activity-workspace';
+  if (type.includes('comment')) return 'activity-comment';
+  return '';
+}
+
 function getActivityIcon(type: string) {
-  // Return a black dot for all activity types
-  return <span className="block w-3 h-3 rounded-full bg-black" />;
+  // All activity icons are black dots for consistency
+  return <span className="block w-3 h-3 rounded-full bg-black" title="Activity" />;
 }
 
 function groupByDay(activities: any[]) {
@@ -284,7 +296,7 @@ function ActivityLogTab({ onPinChange }: { onPinChange?: () => void }) {
                               <button className="ml-2 text-gray-400 hover:text-yellow-500" title="Pin" onClick={() => handlePin(a._id)}><Pin className="w-4 h-4" /></button>
                             )}
                           </div>
-                          <div className="text-gray-800 text-sm whitespace-pre-line" dangerouslySetInnerHTML={{__html: highlightMentions(formatMeetingTime(a.message))}}>
+                          <div className={`text-gray-800 text-sm whitespace-pre-line ${getActivityClass(a.type)}`} dangerouslySetInnerHTML={{__html: highlightMentions(formatMeetingTime(a.message))}}>
                           </div>
                         </div>
                       </div>
@@ -484,7 +496,7 @@ function ProjectSidebar({ project, members, files, pinned, tasks, onFileUpload }
         />
         {/* Files & Attachments in Card with rollup/accordion */}
         <Card className="mb-4">
-          <Accordion type="single" collapsible defaultValue={expanded ? 'files' : undefined} onValueChange={v => setExpanded(!!v)}>
+          <Accordion>
             <AccordionItem value="files">
               <AccordionTrigger>Files & Attachments ({files?.length || 0})</AccordionTrigger>
               <AccordionContent>
@@ -544,6 +556,12 @@ function highlightNames(message: string) {
   });
 }
 function formatMeetingTime(message: string) {
+  // Handle the new professional meeting format
+  if (message.includes('Scheduled meeting:') && message.includes('📅')) {
+    return message; // Already formatted, return as is
+  }
+  
+  // Handle the old format for backward compatibility
   return message.replace(/\(([^)]+) - ([^)]+)\)/, (match, from, to) => {
     try {
       const formattedFrom = format(new Date(from), "PPpp");

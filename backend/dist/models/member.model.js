@@ -33,6 +33,7 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
+// Mongoose model for workspace or project members in the backend application.
 const mongoose_1 = __importStar(require("mongoose"));
 const memberSchema = new mongoose_1.Schema({
     userId: {

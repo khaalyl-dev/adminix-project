@@ -33,6 +33,7 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
+// Mongoose model for roles and permissions, defining access control in the backend application.
 const mongoose_1 = __importStar(require("mongoose"));
 const role_enum_1 = require("../enums/role.enum");
 const role_permission_1 = require("../utils/role-permission");

@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.config = void 0;
+// Application configuration settings for the backend. This file contains global app-level settings used throughout the project.
 const get_env_1 = require("../utils/get-env");
 const appConfig = () => ({
     NODE_ENV: (0, get_env_1.getEnv)("NODE_ENV", "development"),

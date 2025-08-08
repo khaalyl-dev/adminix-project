@@ -26,6 +26,8 @@ const project_route_1 = __importDefault(require("./routes/project.route"));
 const task_route_1 = __importDefault(require("./routes/task.route"));
 const http_1 = __importDefault(require("http"));
 const socket_io_1 = require("socket.io");
+const meeting_route_1 = __importDefault(require("./routes/meeting.route"));
+const sprint_routes_1 = __importDefault(require("./routes/sprint.routes"));
 const app = (0, express_1.default)();
 const BASE_PATH = app_config_1.config.BASE_PATH;
 app.use(express_1.default.json());
@@ -56,6 +58,8 @@ app.use(`${BASE_PATH}/workspace`, isAuthenticated_middleware_1.default, workspac
 app.use(`${BASE_PATH}/member`, isAuthenticated_middleware_1.default, member_route_1.default);
 app.use(`${BASE_PATH}/project`, isAuthenticated_middleware_1.default, project_route_1.default);
 app.use(`${BASE_PATH}/task`, isAuthenticated_middleware_1.default, task_route_1.default);
+app.use(`${BASE_PATH}/sprint`, isAuthenticated_middleware_1.default, sprint_routes_1.default);
+app.use("/api/meetings", meeting_route_1.default);
 app.use(errorHandler_middleware_1.errorHandler);
 const server = http_1.default.createServer(app);
 exports.io = new socket_io_1.Server(server, {

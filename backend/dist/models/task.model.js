@@ -33,6 +33,7 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
+// Mongoose model for tasks, including their properties and relationships, in the backend application.
 const mongoose_1 = __importStar(require("mongoose"));
 const task_enum_1 = require("../enums/task.enum");
 const uuid_1 = require("../utils/uuid");
@@ -83,6 +84,34 @@ const taskSchema = new mongoose_1.Schema({
         required: true,
     },
     dueDate: {
+        type: Date,
+        default: null,
+    },
+    sprint: {
+        type: mongoose_1.Schema.Types.ObjectId,
+        ref: "Sprint",
+        default: null,
+    },
+    // AI Prediction fields
+    aiComplexity: {
+        type: Number,
+        min: 0,
+        max: 10,
+        default: null,
+    },
+    aiRisk: {
+        type: Number,
+        min: 0,
+        max: 10,
+        default: null,
+    },
+    aiPriority: {
+        type: Number,
+        min: 0,
+        max: 10,
+        default: null,
+    },
+    aiPredictionDate: {
         type: Date,
         default: null,
     },

@@ -19,6 +19,7 @@ import {
 import Notification from "../models/notification.model";
 import { io } from "../index";
 import Activity from '../models/activity.model';
+import { format } from "date-fns";
 
 export const createSprintController = asyncHandler(
     async (req: Request, res: Response) => {
@@ -51,7 +52,7 @@ export const createSprintController = asyncHandler(
             projectId: projectId,
             userId: userId,
             type: 'sprint_create',
-            message: `Sprint created: {{${sprint.name}}}`,
+            message: `🚀 Sprint Created\n📋 ${sprint.name}\n📅 ${format(new Date(), "PPpp")}\n👤 Created by ${req.user?.name || 'User'}`,
         });
 
         return res.status(HTTPSTATUS.OK).json({
@@ -84,7 +85,7 @@ export const updateSprintController = asyncHandler(
             projectId: projectId,
             userId: userId,
             type: 'sprint_update',
-            message: `Sprint updated: {{${updatedSprint.name}}}`,
+            message: `🔄 Sprint Updated\n📋 ${updatedSprint.name}\n📅 ${format(new Date(), "PPpp")}\n👤 Updated by ${req.user?.name || 'User'}`,
         });
 
         return res.status(HTTPSTATUS.OK).json({
@@ -177,7 +178,7 @@ export const deleteSprintController = asyncHandler(
             projectId: projectId,
             userId: userId,
             type: 'sprint_delete',
-            message: `Sprint deleted${deleteTasks ? ' with tasks' : ''}`,
+            message: `🗑️ Sprint Deleted\n📅 ${format(new Date(), "PPpp")}\n👤 Deleted by ${req.user?.name || 'User'}${deleteTasks ? '\n⚠️ All associated tasks were also deleted' : ''}`,
         });
 
         return res.status(HTTPSTATUS.OK).json({

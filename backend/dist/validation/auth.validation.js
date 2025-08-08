@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.loginSchema = exports.registerSchema = exports.passwordSchema = exports.emailSchema = void 0;
+// Validation schema and logic for authentication-related API requests.
 const zod_1 = require("zod");
 exports.emailSchema = zod_1.z
     .string()

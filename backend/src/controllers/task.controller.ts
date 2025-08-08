@@ -16,6 +16,7 @@ import Comment from '../models/comment.model';
 import Activity from '../models/activity.model';
 import TaskModel from '../models/task.model';
 import { NotFoundException } from "../utils/app.error";
+import { format } from "date-fns";
 
 
 export const createTaskController = asyncHandler(
@@ -48,7 +49,7 @@ const userId = req.user?._id;
       projectId: projectId,
       userId: userId,
       type: 'task_create',
-      message: `Task created: {{${task.title}}}`,
+      message: `✅ Task Created\n📋 ${task.title}\n📅 ${format(new Date(), "PPpp")}\n👤 Created by ${req.user?.name || 'User'}\n🎯 Priority: ${task.priority || 'Medium'}\n📝 Status: ${task.status || 'To Do'}`,
     });
 
     return res.status(HTTPSTATUS.OK).json({
@@ -111,8 +112,8 @@ export const updateTaskController = asyncHandler(
           changes.push(`dueDate from "${oldTask.dueDate.toISOString()}" to "${new Date(body.dueDate).toISOString()}"`);
         }
         const activityMsg = changes.length > 0
-          ? `Task updated: ${changes.join(', ')}`
-          : `Task updated: ${updatedTask.title}`;
+          ? `🔄 Task Updated\n📋 ${updatedTask.title}\n📅 ${format(new Date(), "PPpp")}\n👤 Updated by ${req.user?.name || 'User'}\n📝 Changes: ${changes.join(', ')}`
+          : `🔄 Task Updated\n📋 ${updatedTask.title}\n📅 ${format(new Date(), "PPpp")}\n👤 Updated by ${req.user?.name || 'User'}`;
 
         await Activity.create({
           projectId: projectId,
@@ -196,6 +197,12 @@ export const deleteTaskController = asyncHandler(
     const { role } = await getMemberRoleInWorkspace(userId, workspaceId);
     roleGuard(role, [Permissions.DELETE_TASK]);
 
+    // Fetch the task before deleting to get its title
+    const oldTask = await TaskModel.findById(taskId);
+    if (!oldTask) {
+      throw new NotFoundException("Task not found.");
+    }
+
     await deleteTaskService(workspaceId, taskId);
     // Create notification
     const notification = await Notification.create({
@@ -210,7 +217,7 @@ export const deleteTaskController = asyncHandler(
       projectId: projectId,
       userId: userId,
       type: 'task_delete',
-      message: `Task deleted: ${taskId}`,
+      message: `🗑️ Task Deleted\n📋 ${oldTask.title}\n📅 ${format(new Date(), "PPpp")}\n👤 Deleted by ${req.user?.name || 'User'}\n⚠️ Task ID: ${taskId}`,
     });
 
     return res.status(HTTPSTATUS.OK).json({
@@ -250,7 +257,7 @@ export const postTaskCommentController = asyncHandler(
       projectId: task?.project,
       userId,
       type: 'comment_create',
-      message: `Commented: ${message}`,
+      message: `💬 Comment Added\n📋 ${task?.title || 'Task'}\n📅 ${format(new Date(), "PPpp")}\n👤 Commented by ${req.user?.name || 'User'}\n💭 ${message.substring(0, 100)}${message.length > 100 ? '...' : ''}`,
     });
     res.status(201).json({ comment });
   }
@@ -278,7 +285,7 @@ export const editTaskCommentController = asyncHandler(
       projectId: task?.project,
       userId,
       type: 'comment_edit',
-      message: `Edited a comment: ${message}`,
+      message: `✏️ Comment Edited\n📋 ${task?.title || 'Task'}\n📅 ${format(new Date(), "PPpp")}\n👤 Edited by ${req.user?.name || 'User'}\n💭 ${message.substring(0, 100)}${message.length > 100 ? '...' : ''}`,
     });
     res.status(200).json({ comment });
   }
@@ -300,7 +307,7 @@ export const deleteTaskCommentController = asyncHandler(
       projectId: task?.project,
       userId,
       type: 'comment_delete',
-      message: `Deleted a comment`,
+      message: `🗑️ Comment Deleted\n📋 ${task?.title || 'Task'}\n📅 ${format(new Date(), "PPpp")}\n👤 Deleted by ${req.user?.name || 'User'}\n💭 Comment removed`,
     });
     res.status(204).send();
   }

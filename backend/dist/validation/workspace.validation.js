@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.updateWorkspaceSchema = exports.createWorkspaceSchema = exports.changeRoleSchema = exports.workspaceIdSchema = exports.descriptionSchema = exports.nameSchema = void 0;
+// Validation schema and logic for workspace-related API requests.
 const zod_1 = require("zod");
 exports.nameSchema = zod_1.z.string()
     .trim()

@@ -73,6 +73,9 @@ export const scheduleMeetingController = asyncHandler(async (req: Request, res: 
   }
   const formattedStart = format(new Date(start), "PPpp");
   const formattedEnd = format(new Date(end), "p");
+  const duration = Math.round((new Date(end).getTime() - new Date(start).getTime()) / (1000 * 60));
+  const guestCount = guests.length;
+  
   // Create notification
   await Notification.create({
     userId,
@@ -81,13 +84,21 @@ export const scheduleMeetingController = asyncHandler(async (req: Request, res: 
     message: `Meeting {{${title}}} scheduled from ${formattedStart} to ${formattedEnd}`,
   });
 
-  // Create activity log
+  // Create activity log with professional details
   if (projectId) {
+    const meetingDetails = [
+      `📅 ${title}`,
+      `⏰ ${formattedStart} - ${formattedEnd} (${duration} min)`,
+      guestCount > 0 ? `👥 ${guestCount} attendee${guestCount > 1 ? 's' : ''}` : '',
+      description ? `📝 ${description}` : '',
+      `🔗 Google Meet link available`
+    ].filter(Boolean).join('\n');
+    
     await Activity.create({
       userId,
       projectId,
       type: 'meeting_schedule',
-      message: `Scheduled meeting: {{${title}}} (${formattedStart} - ${formattedEnd})`,
+      message: `Scheduled meeting:\n${meetingDetails}`,
     });
   }
 

@@ -33,6 +33,7 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
+// Mongoose model for workspaces, representing collaborative environments in the backend application.
 const mongoose_1 = __importStar(require("mongoose"));
 const uuid_1 = require("../utils/uuid");
 const workspaceSchema = new mongoose_1.Schema({

@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.TaskPriorityEnum = exports.TaskStatusEnum = void 0;
+// Enum for task statuses and types used throughout the backend application.
 exports.TaskStatusEnum = {
     BACKLOG: "BACKLOG",
     TODO: "TODO",
