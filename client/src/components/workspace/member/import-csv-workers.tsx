@@ -126,46 +126,70 @@ const ImportCSVWorkers = () => {
       <CardContent className="space-y-4">
         {/* File Upload Area */}
         <div
-          className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
+          className={`border-2 border-dashed rounded-lg p-8 text-center transition-all duration-200 cursor-pointer ${
             isDragging
-              ? "border-primary bg-primary/5"
-              : "border-muted-foreground/25 hover:border-primary/50"
+              ? "border-primary bg-primary/10 scale-105"
+              : "border-muted-foreground/25 hover:border-primary/50 hover:bg-muted/30"
           }`}
           onDrop={handleDrop}
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
+          onClick={() => !csvData && document.getElementById('csv-file-input')?.click()}
         >
           {!csvData ? (
             <div className="space-y-4">
-              <Upload className="w-8 h-8 mx-auto text-muted-foreground" />
-              <div>
-                <p className="text-sm font-medium">
+              <div className="relative">
+                <Upload className="w-12 h-12 mx-auto text-muted-foreground transition-colors group-hover:text-primary" />
+                <div className="absolute inset-0 bg-primary/10 rounded-full scale-0 group-hover:scale-100 transition-transform duration-200" />
+              </div>
+              <div className="space-y-2">
+                <p className="text-base font-medium">
                   Drop your CSV file here, or{" "}
-                  <label className="text-primary cursor-pointer hover:underline">
-                    browse
-                    <input
-                      type="file"
-                      accept=".csv"
-                      onChange={handleFileInput}
-                      className="hidden"
-                    />
-                  </label>
+                  <span className="text-primary font-semibold hover:underline">
+                    click to browse
+                  </span>
                 </p>
-                <p className="text-xs text-muted-foreground mt-1">
+                <p className="text-sm text-muted-foreground">
                   Supports CSV files with Name, Role, Technologies, Experience columns
                 </p>
+                <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
+                  <FileText className="w-3 h-3" />
+                  <span>CSV files only</span>
+                </div>
               </div>
+              <input
+                id="csv-file-input"
+                type="file"
+                accept=".csv"
+                onChange={handleFileInput}
+                className="hidden"
+              />
             </div>
           ) : (
             <div className="space-y-4">
-              <CheckCircle className="w-8 h-8 mx-auto text-green-600" />
-              <div>
-                <p className="text-sm font-medium text-green-600">
+              <div className="relative">
+                <CheckCircle className="w-12 h-12 mx-auto text-green-600" />
+                <div className="absolute inset-0 bg-green-100 rounded-full scale-100 animate-pulse" />
+              </div>
+              <div className="space-y-2">
+                <p className="text-base font-medium text-green-600">
                   File uploaded successfully
                 </p>
-                <p className="text-xs text-muted-foreground mt-1">
+                <p className="text-sm text-muted-foreground">
                   {fileName}
                 </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleClear();
+                  }}
+                  disabled={isPending}
+                >
+                  <X className="w-4 h-4 mr-1" />
+                  Remove File
+                </Button>
               </div>
             </div>
           )}
@@ -174,18 +198,7 @@ const ImportCSVWorkers = () => {
         {/* CSV Preview */}
         {csvData && (
           <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <h4 className="text-sm font-medium">CSV Preview</h4>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleClear}
-                disabled={isPending}
-              >
-                <X className="w-4 h-4 mr-1" />
-                Clear
-              </Button>
-            </div>
+            <h4 className="text-sm font-medium">CSV Preview</h4>
             <div className="bg-muted rounded-md p-3 max-h-32 overflow-y-auto">
               <pre className="text-xs font-mono whitespace-pre-wrap">
                 {csvData.split('\n').slice(0, 5).join('\n')}
