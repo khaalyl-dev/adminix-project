@@ -17,21 +17,26 @@ class DatabaseConnection:
     def __init__(self):
         # Get database connection details from environment
         # Backend uses MONGO_URL, so prioritize that
-        self.mongo_uri = os.getenv("MONGO_URL") or os.getenv("MONGODB_URI") or "mongodb+srv://benananekhalilo:35QIyywSYoyaLKMv@adminix.5n7bbvw.mongodb.net/?retryWrites=true&w=majority&appName=adminix"
+        self.mongo_uri = os.getenv("MONGO_URL")
         
         # Check environment to determine database name
-        node_env = os.getenv("NODE_ENV", "development")
+        node_env = os.getenv("NODE_ENV")
         if node_env == "development":
             self.database_name = "test"  # Backend uses 'test' database in development
         else:
-            # Extract database name from connection string or use default
-            if "adminix" in self.mongo_uri:
-                self.database_name = "adminix"
-            else:
-                self.database_name = os.getenv("DATABASE_NAME", "adminix")
+            # Get database name from environment variable first
+            self.database_name = os.getenv("DATABASE_NAME")
+            
+            # If not set in environment, extract from connection string or use default
+            if not self.database_name:
+                if "adminix" in self.mongo_uri:
+                    self.database_name = "adminix"
+                else:
+                    self.database_name = "adminix"  # fallback default
         self.client = None
         self.db = None
         print(f"🔧 ML Service - Database: {self.database_name}")
+        print(f"🌍 Environment: {node_env or 'development'}")
         
     def connect(self):
         """Connect to MongoDB"""
