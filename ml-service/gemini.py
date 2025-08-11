@@ -68,12 +68,19 @@ Make sure the tasks are realistic, well-scoped, and cover different aspects of t
     max_retries = 3
     for attempt in range(max_retries + 1):
         try:
-            import signal
             import time
-            def timeout_handler(signum, frame):
-                raise TimeoutError("Gemini API call timed out")
-            signal.signal(signal.SIGALRM, timeout_handler)
-            signal.alarm(30)  # 30 second timeout
+            import threading
+            import platform
+            
+            # Cross-platform timeout implementation
+            timeout_occurred = False
+            
+            def timeout_handler():
+                nonlocal timeout_occurred
+                timeout_occurred = True
+            
+            # Use threading.Timer for cross-platform timeout
+            timer = threading.Timer(30.0, timeout_handler)
             
             try:
                 if attempt > 0:
@@ -85,8 +92,19 @@ Make sure the tasks are realistic, well-scoped, and cover different aspects of t
                 else:
                     print("🤖 Calling Gemini API for enhanced task suggestions...")
                 
+                # Start timeout timer
+                timer.start()
+                
+                # Make the API call
                 response = model.generate_content(prompt)
-                signal.alarm(0)  # Cancel the alarm
+                
+                # Cancel timer if successful
+                timer.cancel()
+                
+                # Check if timeout occurred
+                if timeout_occurred:
+                    raise TimeoutError("Gemini API call timed out")
+                
                 text = response.text.strip()
                 
                 # Try to extract JSON from the response
@@ -116,7 +134,7 @@ Make sure the tasks are realistic, well-scoped, and cover different aspects of t
                     print("⚠️  All attempts failed. Using fallback tasks.")
                     return get_fallback_tasks(project_description)
             finally:
-                signal.alarm(0)  # Ensure alarm is cancelled
+                timer.cancel()  # Ensure timer is cancelled
                 
         except Exception as e:
             error_str = str(e).lower()
