@@ -34,6 +34,7 @@ export const createWorkspaceController = asyncHandler(
         });
         io.to(workspaceId).emit('notification', notification);
         await Activity.create({
+          workspaceId: workspace._id,
           userId,
           type: 'workspace_create',
           message: `🏢 Workspace Created\n📋 ${(workspace as WorkspaceDocument).name}\n📅 ${format(new Date(), "PPpp")}\n👤 Created by ${req.user?.name || 'User'}\n📝 ${(workspace as WorkspaceDocument).description || 'No description provided'}`,
@@ -165,6 +166,7 @@ export const updateWorkspaceByIdController = asyncHandler (
     });
     io.to(workspaceId).emit('notification', notification);
             await Activity.create({
+          workspaceId: workspace._id,
           userId,
           type: 'workspace_update',
           message: `🔄 Workspace Updated\n📋 ${(workspace as WorkspaceDocument).name}\n📅 ${format(new Date(), "PPpp")}\n👤 Updated by ${req.user?.name || 'User'}`,
